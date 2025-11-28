@@ -120,7 +120,7 @@ const clienteNav = [
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const isCorretor = user?.role !== "cliente";
   const isTenantAdmin = user?.role === "tenant_admin";
@@ -387,10 +387,8 @@ export function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
             )}
-            <SidebarMenuButton asChild data-testid="button-logout">
-              <a href="/api/logout">
-                <LogOut className="h-4 w-4" />
-              </a>
+            <SidebarMenuButton data-testid="button-logout" onClick={logout}>
+              <LogOut className="h-4 w-4" />
             </SidebarMenuButton>
           </div>
         </div>
