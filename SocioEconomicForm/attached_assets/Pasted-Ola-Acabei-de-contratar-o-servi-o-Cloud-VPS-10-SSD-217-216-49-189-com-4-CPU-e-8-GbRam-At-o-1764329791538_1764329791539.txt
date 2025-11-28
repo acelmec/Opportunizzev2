@@ -1,0 +1,50 @@
+Ola !
+
+Acabei de contratar o serviço Cloud VPS 10 SSD (217.216.49.189) com 4 CPU e 8 GbRam.
+Até o presente momento, não realizei qualquer instalação de aplicação, fiz apenas dois testes para:
+
+1) Certificar que a CPU é AMD EPYC. Já confirmei e esta tudo ok
+2) Testar a performance por núcleo, para garantir a mesma qualidade de outros serviços que tenho com a contabo. Resultado não passou no teste, o serviço possui uma performance 3 a 4 x menor que outros servidores da contabo.
+Deixe-me esclarecer:
+Instalei o sysbench realizando um teste de 20s, onde ele traz algumas informações onde uma delas é a quantidade de events calculados por segundo.
+Abaixo vou detalhar  teste que fiz com a VPS 10 SSD  que apresentou 585,05, contra VPS 1 SSD que apresentou 1631 eventos por segundo. Ou seja, as novas VPS da contabo tem apresentado uma performance 3x inferior aos antigos serviços.
+1) Nos testes utilizei:
+sysbench cpu --cpu-max-prime=20000 run
+2) Abaixo os resultados:
+a.)Relatorio dos resultados da VPS 10 SSD (217.216.49.189)
+=======================================================
+CPU speed:  events per second:   585.05
+General statistics:
+    total time:                          10.0014s
+    total number of events:              5852
+Latency (ms):
+         min:                                    1.66
+         avg:                                    1.71
+         max:                                    2.10
+         95th percentile:                        1.73
+         sum:                                 9993.52
+Threads fairness:
+    events (avg/stddev):           5852.0000/0.00
+    execution time (avg/stddev):   9.9935/0.00 
+
+b) Relatorio dos resultados da VPS 1 SSD (195.26.251.19) 4 CPU e 6 GbRam
+=====================================================================
+CPU speed:    events per second:  1631.84 ( <--- 3 x SUPERIOR)
+General statistics:
+    total time:                          10.0003s
+    total number of events:              16320
+Latency (ms):
+         min:                                    0.59
+         avg:                                    0.61
+         max:                                    1.30
+         95th percentile:                        0.63
+         sum:                                 9987.59
+Threads fairness:
+    events (avg/stddev):           16320.0000/0.00
+    execution time (avg/stddev):   9.9876/0.00
+
+Gostaria de reforçar que objeções do suporte citando que eu deveria verificar se as minhas aplicações estão de acordo para suportar o hardware contratado, já descarto com recebi em outras ocasiões, pois estou fazendo um comparativo de performance com uma VPS recem contratada sem qualquer aplicação em comparação com uma outra VPS com aplicações rodando que demonstra um performance superior.
+Peço para contabo explicar porque os produtos cairam de qualidade. Existe alguma maneira de adquirir uma VPS semelhante ao serviço mais antigo que tenho ? Realmente veja o meu raciocinio. Estou a pagar o mesmo valor de serviço da mesma empresa, hardware semelhantes praticamente, porém a qualidade totalmente diferente. Isso não tem explicação.
+Como vamos resolver isso ? Eu tenho um outro serviço com a contabo que ja infelizmente estou cancelando no dia 30 nov justamente pelo mesmo problema.
+Conto com a seriedade da empresa para me disponibiizar o mesmo serviço de qualidade que já tenho contratado.
+Aguardo.

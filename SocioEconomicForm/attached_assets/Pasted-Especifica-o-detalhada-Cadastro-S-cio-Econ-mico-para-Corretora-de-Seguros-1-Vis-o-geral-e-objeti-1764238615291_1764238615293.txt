@@ -1,0 +1,458 @@
+Especificação detalhada — Cadastro Sócio‑Econômico para Corretora de Seguros
+1. Visão geral e objetivos
+
+Objetivo: Construir um sistema de cadastro completo para Pessoas Físicas e Jurídicas que capture dados sócio‑econômicos, patrimônio, dependentes/funcionários e riscos para identificar oportunidades de oferta de produtos de proteção (Seguro de Vida, RC Profissional, Seguro Residencial, Seguro Auto, Previdência, Saúde, etc.).
+
+Resultados esperados:
+
+Perfil granular por cliente para segmentação e scoring de oportunidades.
+
+Dados organizados para geração automática de propostas e campanhas.
+
+Integração com ferramentas externas (CRM, enriquecimento de dados, e‑mail, e‑signatures).
+
+Conformidade com LGPD e boas práticas de segurança.
+
+2. Requisitos funcionais (alto nível)
+
+CRUD completo de Pessoa Física e Pessoa Jurídica.
+
+Formulários dinâmicos por tipo de cliente (ex.: pessoa física com veículo vs sem veículo).
+
+Cadastro de patrimônio (veículos, imóveis, equipamentos, máquinas, coleções, etc.).
+
+Cadastro de família (cônjuge, filhos dependentes) e funcionários (no caso de PJ) com vínculo e dados relevantes.
+
+Coleta de dados financeiros (renda, gastos mensais, investimentos) e estilo de vida (hobbies, uso de veículo, viagens frequentes).
+
+Módulo de scoring de oportunidades por produto com regras configuráveis.
+
+Dashboard com indicadores: leads quentes, potencial por produto, tráfego de propostas enviadas/aceitas.
+
+Histórico de contatos, propostas, apólices e renovações.
+
+Importação/Exportação (CSV/Excel) e integração via API.
+
+Controle de consentimento e registro de tratamentos (LGPD).
+
+3. Modelo de dados (entidades principais e principais campos)
+
+Observação: todos os campos abaixo devem ter metadados: required, tipo, validação, fontes (manual / import / API), consentimento.
+
+3.1 PessoaFisica
+
+id (UUID)
+
+nome_completo
+
+cpf
+
+data_nascimento
+
+sexo
+
+estado_civil (solteiro, casado, divorciado, viúvo, união_estável)
+
+profissao (texto + CBO opcional)
+
+empresa_emprego (nome)
+
+ocupacao_risco (ex.: operação industrial, médico, motorista) — categorized
+
+renda_mensal_bruta
+
+renda_mensal_liquida
+
+gastos_mensais_estimados
+
+economias_investimentos (valor estimado)
+
+numero_dependentes
+
+filhos (lista: nome, data_nasc, grau_parentesco, dependente_para_imposto?)
+
+conjuge (nome, cpf, data_nasc, profissão)
+
+principais_bens (link para tabela patrimônio)
+
+contatos (telefone(s), email(s))
+
+endereço_principal (FK endereço)
+
+endereço_reserva (casa de veraneio)
+
+perfil_risco (auto-calculado)
+
+preferencia_contato (whatsapp, email, telefone)
+
+consentimento_lgpd (timestamp + escopo)
+
+mitigacoes (observações médicas / profiss. / histórico de sinistros)
+
+3.2 PessoaJuridica
+
+id (UUID)
+
+razao_social
+
+nome_fantasia
+
+cnpj
+
+segmento_atividade (CNAE / categoria)
+
+porte_empresa (micro, pequeno, medio, grande)
+
+faturamento_medio_mensal
+
+endereco_sede (FK)
+
+endereco_filiais (lista)
+
+socios (lista: pessoa referencias)
+
+numero_funcionarios
+
+funcionarios (lista com nome, cargo, salario, dependentes)
+
+patrimonio_imoveis (FK lista)
+
+patrimonio_veiculos (FK lista)
+
+patrimonio_equipamentos (FK lista)
+
+plano_saude_coletivo_pretendido (sim/nao)
+
+beneficiarios_potenciais (vida coletiva)
+
+sinistros_historico (resumo)
+
+consentimento_lgpd
+
+3.3 Endereco
+
+id
+
+tipo (residencial, comercial, veraneio)
+
+cep
+
+logradouro
+
+numero
+
+complemento
+
+bairro
+
+cidade
+
+estado
+
+pais
+
+coordenadas_lat_lon (opcional para geocoding)
+
+3.4 Contato
+
+id
+
+pessoa_id (FK)
+
+tipo (telefone, celular, email)
+
+valor
+
+valido_ate
+
+verificado (boolean)
+
+3.5 Patrimonio (tabela genérica) + subtipos
+
+id
+
+owner_id (FK PessoaFisica/PessoaJuridica)
+
+tipo (veiculo, imovel, equipamento, colecao, embarcacao)
+
+descricao
+
+valor_aprox
+
+data_aquisicao
+
+localizacao (FK endereco)
+
+segurado_atual (sim/nao)
+
+Veiculo (campos adicionais)
+
+marca
+
+modelo
+
+ano_fabricacao
+
+ano_modelo
+
+placa
+
+renavam
+
+uso (pessoal, trabalho, app de transporte)
+
+kilometragem_atual
+
+Imovel
+
+tipo_imovel (residencial, comercial, temporada)
+
+area_m2
+
+quartos
+
+valor_venal
+
+residencial_principal (boolean)
+
+3.6 Funcionário (PJ)
+
+id
+
+empresa_id
+
+nome
+
+cpf
+
+cargo
+
+data_admissao
+
+salario_bruto
+
+dependentes
+
+elegivel_para_vida_coletiva (boolean)
+
+elegivel_para_saude (boolean)
+
+3.7 Historico de Interacoes
+
+id
+
+pessoa_id / empresa_id
+
+tipo_interacao (ligacao, email, visita, proposta, renovacao)
+
+data_hora
+
+canal
+
+resultado (feedback curto)
+
+anexo (link)
+
+3.8 Proposta / Oportunidade
+
+id
+
+pessoa_id / empresa_id
+
+produto (vida, auto, residencial, RC, previdencia, saude)
+
+score_risco (numérico)
+
+score_potencial (numérico)
+
+status (novo, em_proposta, enviado, aceito, recusado)
+
+data_criacao
+
+data_envio
+
+premium_estimado
+
+documentos_necessarios (lista)
+
+4. Validações e regras de integridade
+
+CPF/CNPJ: checar formato, validade (dígito verificador) e duplicidade.
+
+CEP: validar via regex + possível integração com serviço de CEP para autocompletar.
+
+Datas: data_nascimento não pode ser futura; empresa data de constituição não pode ser no futuro.
+
+Valores monetários: aceitar padrão decimal com duas casas.
+
+Consentimento: bloquear envio de proposta enquanto consentimento_lgpd não estiver marcado (ou mínimo escopo para contato comercial).
+
+5. UX / UI — formulários e fluxo
+5.1 Telas principais
+
+Tela de busca/leadboard com filtros (idade, segmento, scoring, patrimonio, cidade).
+
+Tela de resumo do cliente (fichas com separadores: Perfil, Patrimônio, Financeiro, Riscos, Histórico).
+
+Formulário passo-a-passo (wizard) para cadastro inicial: 1) Identificação 2) Contato 3) Endereço 4) Patrimônio 5) Família/Funcionários 6) Finanças 7) Consentimento e conclusão.
+
+Modal de captura rápida (campanhas/landing pages) com campos mínimos para geração de lead e fluxo de enriquecimento posterior.
+
+5.2 Boas práticas de UI
+
+Mostrar progresso no wizard.
+
+Salvar rascunho automático a cada passo.
+
+Validar campos em tempo real (ex.: CPF, CEP).
+
+Campos condicionais (se tem veículo -> mostrar formulário de veículo).
+
+Hints e exemplos ao lado de campos sensíveis (ex.: como estimar gastos mensais).
+
+6. Scoring e regras de priorização (exemplos)
+
+Criar um motor de regras configurável que gere um lead_score e também scores por produto. Valores e pesos devem ser parametrizáveis no admin.
+
+Exemplo de regras (valores fictícios):
+
+Seguro Vida (PF):
+
+Idade 18-45: +30
+
+Idade 46-60: +15
+
+Renda_mensal_bruta > 10.000: +20
+
+Numero_dependentes >=1: +10
+
+Possui mutiplos dependentes menores de 18: +15
+
+Histórico de sinistros pessoais: -20
+
+RC Profissional (PF):
+
+Ocupacao_risco alta (médico, advogado, engenheiro): +30
+
+Tempo de atividade > 5 anos: +10
+
+Possui equipamentos de alto valor > 50k: +15
+
+Previdência (PF):
+
+Idade 30-50: +25
+
+Renda disponível (renda_liquida - gastos_mensais) > 2000: +20
+
+Não possui investimentos relevantes: +10
+
+Seguro Auto (PF):
+
+Veículo com valor > 50k: +20
+
+Uso comercial/app transporte: +15
+
+Idade do condutor < 25: -10
+
+PJ — Vida coletiva / Saúde:
+
+Numero_funcionarios >= 5: +20
+
+Porte empresa médio/grande: +15
+
+Segmento com risco: +10
+
+Cada regra gera um subscore; combine com regras de negação (ex.: se já possui apólice ativa com corretora X e coberturas semelhantes, reduzir prioridade).
+
+7. Integrações sugeridas
+
+Enriquecimento de dados: APIs públicas/privadas para validar CPF/CNPJ e buscar dados básicos (CNPJ: Receita, simulações via Serasa/Boa Vista onde permitido).
+
+Geocoding / CEP: Via API (ex.: ViaCEP no BR) para autocompletar endereços.
+
+CRM/Marketing: integração com HubSpot, Pipedrive, RD Station, ou exportação via webhook.
+
+E‑sign: DocuSign, Clicksign ou soluções locais para assinatura de propostas.
+
+Pagamento: gateways para cobrança de prêmio/parcelamento (MercadoPago, PagSeguro, Pagar.me), se aplicável.
+
+Document storage: S3 compatível (AWS/GCP/MinIO) com versionamento.
+
+8. Segurança & Conformidade (LGPD)
+
+Consentimento explícito: gravar timestamp, canal e escopo (ex.: contato comercial, envio de cotações, compartilhamento com seguradoras).
+
+Base legal: registrar qual base legal foi usada para cada tratamento (consentimento, execução de contrato, legítimo interesse).
+
+Direitos do titular: endpoints/processos para atender solicitações (acesso, retificação, exclusão, portabilidade).
+
+Retenção: política clara por tipo de dado (ex.: leads sem conversão = 2 anos; clientes com apólice = enquanto contratados + 5 anos).
+
+Criptografia em repouso (DB) e em trânsito (TLS).
+
+Logs de auditoria para acessos e alterações de dados pessoais.
+
+Controle de acesso por função (role-based): corretor, gerente, admin, auditor.
+
+9. Relatórios e dashboards (KPIs)
+
+Nº leads por segmento / cidade / campanha.
+
+Potencial prêmio estimado por lead.
+
+Conversão por produto (proposta -> aceito).
+
+Pipeline de propostas (status por corretor).
+
+Distribuição do scoring por produto.
+
+Risco agregado por carteira (ex.: valor total de veículos sem seguro, imóveis de alto valor sem seguro).
+
+10. API pública (exemplos de endpoints REST)
+
+POST /api/v1/pessoas-fisicas — criar PF
+
+GET /api/v1/pessoas-fisicas/{id} — obter
+
+PUT /api/v1/pessoas-fisicas/{id} — atualizar
+
+POST /api/v1/pessoas-juridicas — criar PJ
+
+GET /api/v1/score/{id}?produto=vida — retornar scores por produto
+
+POST /api/v1/importacao/csv — importar massa
+
+GET /api/v1/relatorios/dashboard — KPIs resumidos
+
+Autenticação: OAuth2 / JWT com scopes por role.
+
+11. Esquema de banco (exemplo SQL simplificado)
+CREATE TABLE pessoa_fisica (
+  id UUID PRIMARY KEY,
+  nome VARCHAR(240) NOT NULL,
+  cpf CHAR(11) UNIQUE NOT NULL,
+  data_nascimento DATE,
+  estado_civil VARCHAR(30),
+  profissao VARCHAR(120),
+  renda_mensal DECIMAL(12,2),
+  gastos_mensais DECIMAL(12,2),
+  consentimento_lgpd JSONB,
+  created_at TIMESTAMP, updated_at TIMESTAMP
+);
+
+
+CREATE TABLE veiculo (
+  id UUID PRIMARY KEY,
+  owner_id UUID REFERENCES pessoa_fisica(id) ON DELETE CASCADE,
+  marca VARCHAR(80), modelo VARCHAR(80), ano INT,
+  placa VARCHAR(10), renavam VARCHAR(20), valor DECIMAL(12,2)
+);
+12. Importação e enriquecimento de dados
+
+Suportar upload de CSV com mapeamento de campos.
+
+Processo de limpeza (normalizar nomes, remover duplicados por CPF/CNPJ, validar CEP).
+
+Enriquecer automaticamente quando possível (ex.: buscar dados públicos de CNPJ, verificar placa/veículo via APIs onde permitido).
+
+13.
