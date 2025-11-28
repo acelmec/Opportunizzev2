@@ -886,6 +886,7 @@ export async function registerRoutes(
   app.post("/api/convites/:id/enviar", isEmailAuthenticated, requireTenant, isCorretorOrAdmin, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.claims?.sub;
+      const tenantId = (req as any).tenantId;
       const convite = await storage.getConviteById(req.params.id);
       
       if (!convite) {
@@ -904,9 +905,9 @@ export async function registerRoutes(
           return res.status(400).json({ message: "E-mail do cliente não informado" });
         }
         
-        const smtpConfig = await storage.getSmtpConfigByUser(userId);
+        const smtpConfig = await storage.getTenantSmtpConfig(tenantId);
         if (!smtpConfig || !smtpConfig.ativo) {
-          return res.status(400).json({ message: "Configure o SMTP nas configurações antes de enviar e-mails" });
+          return res.status(400).json({ message: "Configure o SMTP nas configurações da corretora antes de enviar e-mails" });
         }
 
         const result = await sendInviteEmail(smtpConfig, convite, baseUrl);
@@ -918,9 +919,9 @@ export async function registerRoutes(
           return res.status(400).json({ message: "Telefone do cliente não informado" });
         }
         
-        const whatsappConfig = await storage.getWhatsappConfigByUser(userId);
+        const whatsappConfig = await storage.getTenantWhatsappConfig(tenantId);
         if (!whatsappConfig || !whatsappConfig.ativo) {
-          return res.status(400).json({ message: "Configure o WhatsApp nas configurações antes de enviar mensagens" });
+          return res.status(400).json({ message: "Configure o WhatsApp nas configurações da corretora antes de enviar mensagens" });
         }
 
         const result = await sendInviteWhatsApp(whatsappConfig, convite, baseUrl);
