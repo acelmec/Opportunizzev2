@@ -402,7 +402,21 @@ export default function TenantAdmin() {
     );
   }
 
-  const { tenant, plan, stats, alerts } = tenantInfo;
+  const { tenant, plan, alerts } = tenantInfo;
+  const stats = {
+    totalUsuarios: tenantInfo.stats?.totalUsuarios ?? 0,
+    totalClientes: tenantInfo.stats?.totalClientes ?? 0,
+    totalApolices: tenantInfo.stats?.totalApolices ?? 0,
+    totalTokensIa: tenantInfo.stats?.totalTokensIa ?? 0,
+    totalConexoes: tenantInfo.stats?.totalConexoes ?? 0,
+    clientesPF: tenantInfo.stats?.clientesPF ?? 0,
+    clientesPJ: tenantInfo.stats?.clientesPJ ?? 0,
+    limiteUsuarios: tenantInfo.stats?.limiteUsuarios ?? 0,
+    limiteClientes: tenantInfo.stats?.limiteClientes ?? 0,
+    limiteApolices: tenantInfo.stats?.limiteApolices ?? null,
+    limiteTokensIa: tenantInfo.stats?.limiteTokensIa ?? null,
+    limiteConexoes: tenantInfo.stats?.limiteConexoes ?? null,
+  };
   const planPrice = plan?.precoMensal ? parseFloat(plan.precoMensal) : 0;
 
   return (
@@ -563,7 +577,7 @@ export default function TenantAdmin() {
                 />
               </div>
               <p className="text-xs text-muted-foreground text-center">
-                {stats.totalClientes.toLocaleString("pt-BR")} / {stats.limiteClientes.toLocaleString("pt-BR")}
+                {(stats.totalClientes ?? 0).toLocaleString("pt-BR")} / {(stats.limiteClientes ?? 0).toLocaleString("pt-BR")}
               </p>
             </div>
 
@@ -995,12 +1009,12 @@ export default function TenantAdmin() {
                       Clientes
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      {stats.totalClientes.toLocaleString("pt-BR")} de {stats.limiteClientes.toLocaleString("pt-BR")}
+                      {(stats.totalClientes ?? 0).toLocaleString("pt-BR")} de {(stats.limiteClientes ?? 0).toLocaleString("pt-BR")}
                     </span>
                   </div>
-                  <Progress value={(stats.totalClientes / stats.limiteClientes) * 100} className="h-3" />
+                  <Progress value={stats.limiteClientes ? ((stats.totalClientes ?? 0) / stats.limiteClientes) * 100 : 0} className="h-3" />
                   <p className="text-xs text-muted-foreground">
-                    PF: {stats.clientesPF.toLocaleString("pt-BR")} | PJ: {stats.clientesPJ.toLocaleString("pt-BR")}
+                    PF: {(stats.clientesPF ?? 0).toLocaleString("pt-BR")} | PJ: {(stats.clientesPJ ?? 0).toLocaleString("pt-BR")}
                   </p>
                 </div>
 
@@ -1086,7 +1100,7 @@ export default function TenantAdmin() {
                     </div>
                     <div className="p-3 rounded-lg border">
                       <p className="text-sm text-muted-foreground">Clientes</p>
-                      <p className="text-lg font-semibold">{stats.limiteClientes.toLocaleString("pt-BR")}</p>
+                      <p className="text-lg font-semibold">{(stats.limiteClientes ?? 0).toLocaleString("pt-BR")}</p>
                     </div>
                     <div className="p-3 rounded-lg border">
                       <p className="text-sm text-muted-foreground">Apólices</p>
