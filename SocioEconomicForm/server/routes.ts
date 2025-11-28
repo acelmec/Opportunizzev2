@@ -919,9 +919,9 @@ export async function registerRoutes(
           return res.status(400).json({ message: "Telefone do cliente não informado" });
         }
         
-        const whatsappConfig = await storage.getTenantWhatsappConfig(tenantId);
+        const whatsappConfig = await storage.getWhatsappConfigByUser(userId);
         if (!whatsappConfig || !whatsappConfig.ativo) {
-          return res.status(400).json({ message: "Configure o WhatsApp nas configurações da corretora antes de enviar mensagens" });
+          return res.status(400).json({ message: "Configure o WhatsApp nas configurações antes de enviar mensagens" });
         }
 
         const result = await sendInviteWhatsApp(whatsappConfig, convite, baseUrl);

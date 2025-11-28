@@ -88,7 +88,7 @@ export async function sendTestEmail(
 }
 
 export async function sendInviteEmail(
-  config: SmtpConfig,
+  config: SmtpConfigLike,
   convite: Convite,
   baseUrl: string
 ): Promise<SendResult> {
