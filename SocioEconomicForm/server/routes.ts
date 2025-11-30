@@ -1067,6 +1067,13 @@ export async function registerRoutes(
         return res.status(500).json({ message: `Erro ao enviar e-mail de teste: ${result.error}` });
       }
 
+      // Marca como testado com sucesso
+      const tenantId = (req as any).tenantId;
+      if (tenantId) {
+        const smtpConfigAtualizado = { ...smtpConfig, testatoEm: new Date() };
+        await storage.upsertTenantSmtpConfig(smtpConfigAtualizado);
+      }
+
       res.json({ success: true, message: "E-mail de teste enviado com sucesso!" });
     } catch (error) {
       console.error("Error sending test email:", error);

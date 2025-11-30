@@ -165,6 +165,7 @@ export interface IStorage {
   
   // Convites
   getAllConvitesByCorretor(corretorId: string): Promise<Convite[]>;
+  getAllConvitesByCorretorAndTenant(corretorId: string, tenantId: string): Promise<Convite[]>;
   getConviteByToken(token: string): Promise<Convite | undefined>;
   getConviteById(id: string): Promise<Convite | undefined>;
   createConvite(convite: InsertConvite): Promise<Convite>;
@@ -1025,6 +1026,10 @@ export class DatabaseStorage implements IStorage {
   // Convites
   async getAllConvitesByCorretor(corretorId: string): Promise<Convite[]> {
     return db.select().from(convites).where(eq(convites.corretorId, corretorId)).orderBy(desc(convites.createdAt));
+  }
+
+  async getAllConvitesByCorretorAndTenant(corretorId: string, tenantId: string): Promise<Convite[]> {
+    return db.select().from(convites).where(and(eq(convites.corretorId, corretorId), eq(convites.tenantId, tenantId))).orderBy(desc(convites.createdAt));
   }
 
   async getConviteByToken(token: string): Promise<Convite | undefined> {
