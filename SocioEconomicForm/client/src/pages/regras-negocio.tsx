@@ -1,7 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -9,6 +12,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -24,6 +45,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { LoadingSpinner } from "@/components/loading-state";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Scale,
   User,
@@ -34,6 +57,10 @@ import {
   ChevronRight,
   Shield,
   Info,
+  Plus,
+  Edit,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -120,12 +147,106 @@ function formatCondition(cond: RuleCondition): string {
 }
 
 export default function RegrasNegocio() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTipoPessoa, setFilterTipoPessoa] = useState<string>("todos");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<BusinessRule | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    nome: "",
+    descricao: "",
+    tipoPessoa: "ambos" as "pf" | "pj" | "ambos",
+    tipoSeguroId: "",
+    scoreBonus: 10,
+  });
 
   const { data: rules = [], isLoading } = useQuery<BusinessRule[]>({
     queryKey: ["/api/regras-negocio"],
   });
+
+  const { data: tipos = [] } = useQuery({
+    queryKey: ["/api/tipos-seguro"],
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/regras-negocio", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/regras-negocio"] });
+      toast({ title: "Regra criada com sucesso!" });
+      setCreateDialogOpen(false);
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", title: "Erro ao criar regra", description: error.message });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("PUT", `/api/regras-negocio/${data.id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/regras-negocio"] });
+      toast({ title: "Regra atualizada com sucesso!" });
+      setEditingRule(null);
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", title: "Erro ao atualizar regra", description: error.message });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/regras-negocio/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/regras-negocio"] });
+      toast({ title: "Regra removida com sucesso!" });
+      setDeleteId(null);
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", title: "Erro ao remover regra", description: error.message });
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({ nome: "", descricao: "", tipoPessoa: "ambos", tipoSeguroId: "", scoreBonus: 10 });
+  };
+
+  const handleOpenCreate = () => {
+    resetForm();
+    setEditingRule(null);
+    setCreateDialogOpen(true);
+  };
+
+  const handleOpenEdit = (rule: BusinessRule) => {
+    setEditingRule(rule);
+    setFormData({
+      nome: rule.nome,
+      descricao: rule.descricao || "",
+      tipoPessoa: rule.tipoPessoa,
+      tipoSeguroId: rule.tipoSeguroId || "",
+      scoreBonus: rule.scoreBonus || 10,
+    });
+    setCreateDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!formData.nome.trim()) {
+      toast({ variant: "destructive", title: "Nome é obrigatório" });
+      return;
+    }
+
+    if (editingRule) {
+      updateMutation.mutate({ id: editingRule.id, ...formData, condicoes: editingRule.condicoes, regras: editingRule.regras });
+    } else {
+      createMutation.mutate({ ...formData, condicoes: [], regras: {} });
+    }
+  };
 
   const filteredRules = rules.filter((rule) => {
     const matchesSearch = rule.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -169,12 +290,103 @@ export default function RegrasNegocio() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Catálogo de Regras</CardTitle>
-          <CardDescription>
-            Estas regras ajudam a identificar automaticamente quais produtos de seguro 
-            são mais adequados para cada perfil de cliente
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Catálogo de Regras</CardTitle>
+            <CardDescription>
+              Estas regras ajudam a identificar automaticamente quais produtos de seguro 
+              são mais adequados para cada perfil de cliente
+            </CardDescription>
+          </div>
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleOpenCreate}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Regra
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>{editingRule ? "Editar Regra" : "Nova Regra de Negócio"}</DialogTitle>
+                <DialogDescription>
+                  {editingRule ? "Atualize os dados da regra" : "Crie uma nova regra para identificar oportunidades"}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nome da Regra *</Label>
+                  <Input
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    placeholder="Ex: Clientes com imóvel"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Descrição</Label>
+                  <Textarea
+                    value={formData.descricao}
+                    onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                    placeholder="Descrição da regra..."
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Tipo de Pessoa</Label>
+                    <Select value={formData.tipoPessoa} onValueChange={(value: any) => setFormData({ ...formData, tipoPessoa: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pf">Pessoa Física</SelectItem>
+                        <SelectItem value="pj">Pessoa Jurídica</SelectItem>
+                        <SelectItem value="ambos">Ambas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Produto</Label>
+                    <Select value={formData.tipoSeguroId} onValueChange={(value) => setFormData({ ...formData, tipoSeguroId: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Todos os produtos</SelectItem>
+                        {tipos.map((t: any) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Score de Bonus</Label>
+                  <Input
+                    type="number"
+                    value={formData.scoreBonus}
+                    onChange={(e) => setFormData({ ...formData, scoreBonus: parseInt(e.target.value) })}
+                    min="0"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
+                  {createMutation.isPending || updateMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    editingRule ? "Atualizar" : "Criar"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -294,11 +506,19 @@ export default function RegrasNegocio() {
                                 </div>
                               )}
                             </div>
-                            <div className="text-right">
+                            <div className="flex flex-col items-end gap-2">
                               <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
                                 <Target className="h-3 w-3 mr-1" />
                                 +{rule.scoreBonus || 0} pts
                               </Badge>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(rule)}>
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => setDeleteId(rule.id)}>
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </CardContent>
@@ -379,6 +599,22 @@ export default function RegrasNegocio() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Regra</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => deleteId && deleteMutation.mutate(deleteId)} className="bg-destructive">
+            Remover
+          </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

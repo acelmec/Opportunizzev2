@@ -2287,6 +2287,75 @@ export async function registerRoutes(
     }
   });
 
+  // Create business rule
+  app.post("/api/regras-negocio", isEmailAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { nome, descricao, tipoPessoa, tipoSeguroId, prioridade, condicoes, scoreBonus, regras, ativo } = req.body;
+      
+      if (!nome) {
+        return res.status(400).json({ message: "Nome é obrigatório" });
+      }
+      
+      const rule = await storage.createBusinessRuleTemplate({
+        nome,
+        descricao: descricao || null,
+        tipoPessoa: tipoPessoa || "ambos",
+        tipoSeguroId: tipoSeguroId || null,
+        prioridade: prioridade || 0,
+        condicoes: condicoes || [],
+        scoreBonus: scoreBonus || 10,
+        regras: regras || {},
+        ativo: ativo !== false,
+      });
+      
+      res.json(rule);
+    } catch (error) {
+      console.error("Error creating business rule:", error);
+      res.status(500).json({ message: "Erro ao criar regra" });
+    }
+  });
+
+  // Update business rule
+  app.put("/api/regras-negocio/:id", isEmailAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { nome, descricao, tipoPessoa, tipoSeguroId, prioridade, condicoes, scoreBonus, regras, ativo } = req.body;
+      
+      const rule = await storage.updateBusinessRuleTemplate(id, {
+        nome,
+        descricao: descricao || null,
+        tipoPessoa,
+        tipoSeguroId: tipoSeguroId || null,
+        prioridade,
+        condicoes,
+        scoreBonus,
+        regras,
+        ativo,
+      });
+      
+      if (!rule) {
+        return res.status(404).json({ message: "Regra não encontrada" });
+      }
+      
+      res.json(rule);
+    } catch (error) {
+      console.error("Error updating business rule:", error);
+      res.status(500).json({ message: "Erro ao atualizar regra" });
+    }
+  });
+
+  // Delete business rule
+  app.delete("/api/regras-negocio/:id", isEmailAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteBusinessRuleTemplate(id);
+      res.json({ message: "Regra removida com sucesso" });
+    } catch (error) {
+      console.error("Error deleting business rule:", error);
+      res.status(500).json({ message: "Erro ao remover regra" });
+    }
+  });
+
   // Catalog search: get all relationships for building catalog views
   app.get("/api/catalogo", isEmailAuthenticated, async (req: Request, res: Response) => {
     try {
