@@ -67,6 +67,12 @@ export default function GestaoClientesPage() {
   const [selectedCanal, setSelectedCanal] = useState<string>("email");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importedClients, setImportedClients] = useState<Array<{ nome: string; email: string; telefone: string }>>([]);
+  
+  // Filtros para Clientes
+  const [filterTipo, setFilterTipo] = useState<string>("todos");
+  const [filterNome, setFilterNome] = useState<string>("");
+  const [filterCpfCnpj, setFilterCpfCnpj] = useState<string>("");
+  const [filterEmail, setFilterEmail] = useState<string>("");
 
   const [newConvite, setNewConvite] = useState({
     nomeCliente: "",
@@ -203,6 +209,23 @@ export default function GestaoClientesPage() {
         return null;
     }
   };
+
+  // Filtra clientes baseado nos critérios
+  const filteredPessoasFisicas = pessoasFisicas.filter(pf => {
+    if (filterTipo === "juridica") return false;
+    if (filterNome && !pf.nomeCompleto.toLowerCase().includes(filterNome.toLowerCase())) return false;
+    if (filterCpfCnpj && !pf.cpf?.includes(filterCpfCnpj.replace(/\D/g, ""))) return false;
+    if (filterEmail && !pf.email?.toLowerCase().includes(filterEmail.toLowerCase())) return false;
+    return true;
+  });
+
+  const filteredPessoasJuridicas = pessoasJuridicas.filter(pj => {
+    if (filterTipo === "fisica") return false;
+    if (filterNome && !pj.razaoSocial.toLowerCase().includes(filterNome.toLowerCase())) return false;
+    if (filterCpfCnpj && !pj.cnpj?.includes(filterCpfCnpj.replace(/\D/g, ""))) return false;
+    if (filterEmail && !pj.email?.toLowerCase().includes(filterEmail.toLowerCase())) return false;
+    return true;
+  });
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -463,13 +486,59 @@ export default function GestaoClientesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {pessoasFisicas.length === 0 && pessoasJuridicas.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum cliente cadastrado</p>
+          <div className="space-y-4">
+            {/* Filtros */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-4 border-b">
+              <div className="space-y-2">
+                <Label htmlFor="filter-tipo">Tipo de Pessoa</Label>
+                <Select value={filterTipo} onValueChange={setFilterTipo}>
+                  <SelectTrigger id="filter-tipo">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="fisica">Pessoa Física</SelectItem>
+                    <SelectItem value="juridica">Pessoa Jurídica</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="filter-nome">Nome / Razão Social</Label>
+                <Input
+                  id="filter-nome"
+                  placeholder="Pesquisar por nome..."
+                  value={filterNome}
+                  onChange={(e) => setFilterNome(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="filter-cpf">CPF / CNPJ</Label>
+                <Input
+                  id="filter-cpf"
+                  placeholder="Pesquisar por CPF/CNPJ..."
+                  value={filterCpfCnpj}
+                  onChange={(e) => setFilterCpfCnpj(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="filter-email">E-mail</Label>
+                <Input
+                  id="filter-email"
+                  placeholder="Pesquisar por e-mail..."
+                  value={filterEmail}
+                  onChange={(e) => setFilterEmail(e.target.value)}
+                />
+              </div>
             </div>
-          ) : (
-            <Table>
+
+            {/* Resultados */}
+            {filteredPessoasFisicas.length === 0 && filteredPessoasJuridicas.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Nenhum cliente encontrado</p>
+              </div>
+            ) : (
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Tipo</TableHead>
@@ -480,7 +549,7 @@ export default function GestaoClientesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pessoasFisicas.map((pf) => (
+                {filteredPessoasFisicas.map((pf) => (
                   <TableRow key={`pf-${pf.id}`}>
                     <TableCell>
                       <Badge variant="outline" className="gap-1">
@@ -496,7 +565,7 @@ export default function GestaoClientesPage() {
                     <TableCell>{pf.telefone || "-"}</TableCell>
                   </TableRow>
                 ))}
-                {pessoasJuridicas.map((pj) => (
+                {filteredPessoasJuridicas.map((pj) => (
                   <TableRow key={`pj-${pj.id}`}>
                     <TableCell>
                       <Badge variant="outline" className="gap-1">
@@ -514,7 +583,8 @@ export default function GestaoClientesPage() {
                 ))}
               </TableBody>
             </Table>
-          )}
+            )}
+          </div>
         </CardContent>
       </Card>
 
