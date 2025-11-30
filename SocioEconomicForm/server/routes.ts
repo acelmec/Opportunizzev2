@@ -2254,6 +2254,20 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/seguradoras/:id", isEmailAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const seguradora = await storage.getSeguradoraMaster(id);
+      if (!seguradora || !seguradora.ativo) {
+        return res.status(404).json({ message: "Seguradora não encontrada" });
+      }
+      res.json(seguradora);
+    } catch (error) {
+      console.error("Error fetching seguradora:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.get("/api/tipos-seguro", isEmailAuthenticated, async (req: Request, res: Response) => {
     try {
       const tipos = await storage.getAllTiposSeguroMaster();
@@ -2261,6 +2275,20 @@ export async function registerRoutes(
       res.json(sorted.filter(t => t.ativo));
     } catch (error) {
       console.error("Error fetching tipos de seguro:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/tipos-seguro/:id", isEmailAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const tipoSeguro = await storage.getTipoSeguroMaster(id);
+      if (!tipoSeguro || !tipoSeguro.ativo) {
+        return res.status(404).json({ message: "Tipo de seguro não encontrado" });
+      }
+      res.json(tipoSeguro);
+    } catch (error) {
+      console.error("Error fetching tipo de seguro:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

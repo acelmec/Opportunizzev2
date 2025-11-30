@@ -90,6 +90,11 @@ const corretorCatalogo = [
     icon: Shield,
   },
   {
+    title: "Tipos de Seguro",
+    url: "/tipos-seguro",
+    icon: FileText,
+  },
+  {
     title: "Apólices",
     url: "/apolices",
     icon: FileText,

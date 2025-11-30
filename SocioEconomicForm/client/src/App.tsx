@@ -28,6 +28,8 @@ import GestaoClientes from "@/pages/gestao-clientes";
 import Configuracoes from "@/pages/configuracoes";
 import Seguradoras from "@/pages/seguradoras";
 import SeguradoresDetalhes from "@/pages/seguradoras-detalhes";
+import TiposSeguro from "@/pages/tipos-seguro";
+import TiposSeguroDetalhes from "@/pages/tipos-seguro-detalhes";
 import Apolices from "@/pages/apolices";
 import ClienteDashboard from "@/pages/cliente-dashboard";
 import Convite from "@/pages/convite";
@@ -104,6 +106,8 @@ function CorretorRouter() {
       <Route path="/regras-negocio" component={RegrasNegocio} />
       <Route path="/seguradoras" component={Seguradoras} />
       <Route path="/seguradoras/:id" component={SeguradoresDetalhes} />
+      <Route path="/tipos-seguro" component={TiposSeguro} />
+      <Route path="/tipos-seguro/:id" component={TiposSeguroDetalhes} />
       <Route path="/apolices" component={Apolices} />
       <Route path="/configuracoes" component={Configuracoes} />
       <Route path="/conta" component={Account} />
