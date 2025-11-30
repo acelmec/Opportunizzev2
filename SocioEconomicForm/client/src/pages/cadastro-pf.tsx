@@ -90,11 +90,19 @@ const steps = [
   { id: 7, title: "Consentimento", icon: Shield },
 ];
 
+interface Dependente {
+  id?: string;
+  nome: string;
+  tipoRelacao: string;
+  dataNascimento: string;
+}
+
 export default function CadastroPF() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoadingCep, setIsLoadingCep] = useState(false);
+  const [dependentes, setDependentes] = useState<Dependente[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -147,11 +155,11 @@ export default function CadastroPF() {
         rendaMensalLiquida: data.rendaMensalLiquida ? data.rendaMensalLiquida.replace(/\D/g, "") : null,
         gastosMensais: data.gastosMensais ? data.gastosMensais.replace(/\D/g, "") : null,
         economias: data.economias ? data.economias.replace(/\D/g, "") : null,
-        numeroDependentes: data.numeroDependentes ? parseInt(data.numeroDependentes) : 0,
         consentimentoLgpd: data.consentimentoLgpd,
         consentimentoEscopo: data.consentimentoEscopo || null,
         consentimentoTimestamp: data.consentimentoLgpd ? new Date().toISOString() : null,
         observacoes: data.observacoes || null,
+        dependentes: dependentes,
         endereco: data.cep ? {
           tipo: "residencial",
           cep: data.cep.replace(/\D/g, ""),
@@ -227,6 +235,8 @@ export default function CadastroPF() {
       case 5:
         return ["rendaMensalBruta", "rendaMensalLiquida", "gastosMensais", "economias"];
       case 6:
+        return [];
+      case 7:
         return ["consentimentoLgpd", "consentimentoEscopo", "observacoes"];
       default:
         return [];
@@ -983,29 +993,68 @@ export default function CadastroPF() {
                       )}
                     />
                   </div>
-                  <FormField
-                    control={form.control}
-                    name="numeroDependentes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Número de Dependentes</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            {...field}
-                            placeholder="0"
-                            data-testid="input-dependentes"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </>
               )}
 
               {currentStep === 6 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex-1">
+                      <Input placeholder="Nome do dependente" id="dep-nome" data-testid="input-dependente-nome" />
+                    </div>
+                    <div className="flex-1">
+                      <Select onValueChange={(val) => {
+                        const depNome = (document.getElementById("dep-nome") as HTMLInputElement)?.value || "";
+                        const depData = (document.getElementById("dep-data") as HTMLInputElement)?.value || "";
+                        if (!val || !depData) {
+                          toast({ title: "Tipo e Data de Nascimento são obrigatórios", variant: "destructive" });
+                          return;
+                        }
+                      }}>
+                        <SelectTrigger data-testid="select-tipo-relacao">
+                          <SelectValue placeholder="Tipo de Relação *" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="conjuge">Cônjuge</SelectItem>
+                          <SelectItem value="filho">Filho(a)</SelectItem>
+                          <SelectItem value="pai">Pai</SelectItem>
+                          <SelectItem value="mae">Mãe</SelectItem>
+                          <SelectItem value="irma">Irmã/Irmão</SelectItem>
+                          <SelectItem value="outro">Outro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input type="date" placeholder="Data Nascimento *" id="dep-data" data-testid="input-dependente-data" className="flex-1" />
+                      <Button type="button" size="sm" onClick={() => {
+                        const nome = (document.getElementById("dep-nome") as HTMLInputElement)?.value;
+                        const tipoRel = (document.querySelector('[data-testid="select-tipo-relacao"]') as any)?.textContent?.split('\n')[0]?.trim();
+                        const data = (document.getElementById("dep-data") as HTMLInputElement)?.value;
+                        if (!tipoRel || tipoRel === "Tipo de Relação *" || !data) {
+                          toast({ title: "Preencha Tipo e Data de Nascimento", variant: "destructive" });
+                          return;
+                        }
+                        setDependentes([...dependentes, { nome: nome || "", tipoRelacao: tipoRel, dataNascimento: data }]);
+                        (document.getElementById("dep-nome") as HTMLInputElement).value = "";
+                        (document.getElementById("dep-data") as HTMLInputElement).value = "";
+                      }}>Adicionar</Button>
+                    </div>
+                  </div>
+                  {dependentes.length > 0 && (
+                    <div className="mt-6 space-y-2">
+                      <p className="text-sm font-medium">{dependentes.length} dependente(s) adicionado(s)</p>
+                      {dependentes.map((dep, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-2 bg-muted rounded">
+                          <span className="text-sm">{dep.nome || "(sem nome)"} - {dep.tipoRelacao}</span>
+                          <Button variant="ghost" size="sm" onClick={() => setDependentes(dependentes.filter((_, i) => i !== idx))}>Remover</Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {currentStep === 7 && (
                 <>
                   <FormField
                     control={form.control}
