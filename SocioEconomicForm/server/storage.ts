@@ -1665,7 +1665,7 @@ export class DatabaseStorage implements IStorage {
           maxClientes: plan[0].maxClientes || 100,
           maxApolices: plan[0].maxApolices,
           maxTokensIa: plan[0].maxTokensIa,
-          maxConexoesEvolution: plan[0].maxConexoesEvolution
+          maxConexoesEvolution: plan[0].maxConexoesEvolution || 1
         };
         planName = plan[0].nome;
       }
