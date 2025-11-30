@@ -4,11 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { Phone, Mail, Globe, Shield, Search } from "lucide-react";
+import { Phone, Mail, Globe, Shield, Search, ChevronRight } from "lucide-react";
+import { useLocation } from "wouter";
 import type { SeguradoraMaster } from "@shared/schema";
 
 export default function Seguradoras() {
   const [search, setSearch] = useState("");
+  const [, navigate] = useLocation();
 
   const { data: seguradoras, isLoading } = useQuery<SeguradoraMaster[]>({
     queryKey: ["/api/seguradoras"],
@@ -58,7 +60,11 @@ export default function Seguradoras() {
       ) : filteredSeguradoras?.length ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredSeguradoras.map((seg) => (
-            <Card key={seg.id} className="hover:shadow-md transition-shadow">
+            <Card
+              key={seg.id}
+              className="hover:shadow-md transition-shadow cursor-pointer hover:bg-accent"
+              onClick={() => navigate(`/seguradoras/${seg.id}`)}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -72,9 +78,12 @@ export default function Seguradoras() {
                       </CardDescription>
                     )}
                   </div>
-                  <Badge variant={seg.ativo ? "default" : "secondary"}>
-                    {seg.ativo ? "Ativa" : "Inativa"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={seg.ativo ? "default" : "secondary"}>
+                      {seg.ativo ? "Ativa" : "Inativa"}
+                    </Badge>
+                    <ChevronRight className="h-4 w-4" />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
