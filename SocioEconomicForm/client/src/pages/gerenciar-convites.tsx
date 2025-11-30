@@ -19,7 +19,7 @@ export default function GerenciarConvitesPage() {
   const { data: convites = [], isLoading, refetch } = useQuery({
     queryKey: ["/api/convites"],
     retry: true,
-  });
+  }) as { data: any[]; isLoading: boolean; refetch: () => void };
 
   const filteredConvites = convites.filter((c: any) => {
     const matchesSearch =
@@ -40,13 +40,21 @@ export default function GerenciarConvitesPage() {
     }
   };
 
-  const handleSendConvite = async (id: string) => {
+  const handleSendConvite = async (id: string, email: string) => {
     try {
-      await apiRequest("POST", `/api/convites/${id}/enviar`, {});
-      toast({ title: "Convite enviado com sucesso" });
+      const response = await apiRequest("POST", `/api/convites/${id}/enviar`, {});
+      toast({ 
+        title: "Sucesso!", 
+        description: `Convite reenviado para ${email}. Verifique a caixa de entrada ou spam.` 
+      });
       refetch();
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro", description: error.message });
+      console.error("Erro ao reenviar:", error);
+      toast({ 
+        variant: "destructive", 
+        title: "Erro ao reenviar", 
+        description: error.message || "Verifique se a configuração SMTP está ativa nas configurações da corretora"
+      });
     }
   };
 
@@ -209,13 +217,13 @@ export default function GerenciarConvitesPage() {
                               </DialogContent>
                             </Dialog>
 
-                            {/* Send Button */}
-                            {convite.status === "pendente" && (
+                            {/* Send/Resend Button */}
+                            {(convite.status === "pendente" || convite.status === "enviado") && (
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleSendConvite(convite.id)}
-                                title="Enviar convite por email"
+                                onClick={() => handleSendConvite(convite.id, convite.email)}
+                                title={convite.status === "pendente" ? "Enviar convite por email" : "Reenviar convite"}
                               >
                                 <Send className="h-4 w-4" />
                               </Button>

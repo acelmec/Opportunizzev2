@@ -29,7 +29,7 @@ export default function AceitarConvitePage() {
           const data = await conviteRes.json();
           throw new Error(data.message || "Convite inválido");
         }
-        const convite = await conviteRes.json();
+        const convite: any = await conviteRes.json();
 
         await apiRequest("PATCH", `/api/convites/${convite.id}/status`, {
           status: "aceito",

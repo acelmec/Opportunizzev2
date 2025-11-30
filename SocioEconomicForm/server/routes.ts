@@ -942,13 +942,14 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Canal de envio inválido" });
       }
 
+      console.log(`[CONVITE] Email enviado para ${convite.email} via ${canal}`);
       await storage.updateConviteStatus(req.params.id, "enviado");
       const updatedConvite = await storage.getConviteById(req.params.id);
       
-      res.json({ success: true, convite: updatedConvite });
+      res.json({ success: true, convite: updatedConvite, message: "Convite reenviado com sucesso!" });
     } catch (error) {
       console.error("Error sending convite:", error);
-      res.status(500).json({ message: "Internal server error" });
+      res.status(500).json({ message: `Erro ao reenviar convite: ${error instanceof Error ? error.message : "Erro desconhecido"}` });
     }
   });
 
