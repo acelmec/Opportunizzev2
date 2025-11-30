@@ -344,13 +344,13 @@ export default function RegrasNegocio() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Produto</Label>
-                    <Select value={formData.tipoSeguroId} onValueChange={(value) => setFormData({ ...formData, tipoSeguroId: value })}>
+                    <Label>Produto (Opcional)</Label>
+                    <Select value={formData.tipoSeguroId || "nenhum"} onValueChange={(value) => setFormData({ ...formData, tipoSeguroId: value === "nenhum" ? "" : value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecionar..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos os produtos</SelectItem>
+                        <SelectItem value="nenhum">Todos os produtos</SelectItem>
                         {(tipos as any[]).map((t: any) => (
                           <SelectItem key={t.id} value={t.id}>
                             {t.nome}
