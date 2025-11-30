@@ -51,15 +51,15 @@ export default function Produtos() {
   const { toast } = useToast();
 
   const { data: produtos, isLoading: produtosLoading } = useQuery<TipoSeguroMaster[]>({
-    queryKey: ["/api/admin/tipos-seguro"],
+    queryKey: ["/api/tipos-seguro"],
   });
 
   const { data: seguradoras, isLoading: seguradoresLoading } = useQuery<SeguradoraMaster[]>({
-    queryKey: ["/api/admin/seguradoras"],
+    queryKey: ["/api/seguradoras"],
   });
 
   const { data: vinculacoes } = useQuery<SeguradoraProduto[]>({
-    queryKey: ["/api/admin/seguradora-produtos"],
+    queryKey: ["/api/seguradora-produtos"],
   });
 
   const isLoading = produtosLoading || seguradoresLoading;

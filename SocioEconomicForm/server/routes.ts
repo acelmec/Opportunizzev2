@@ -2258,9 +2258,19 @@ export async function registerRoutes(
     try {
       const tipos = await storage.getAllTiposSeguroMaster();
       const sorted = tipos.sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
-      res.json(sorted);
+      res.json(sorted.filter(t => t.ativo));
     } catch (error) {
       console.error("Error fetching tipos de seguro:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/seguradora-produtos", isEmailAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const produtos = await storage.getAllSeguradoraProdutos();
+      res.json(produtos.filter(p => p.ativo));
+    } catch (error) {
+      console.error("Error fetching seguradora produtos:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
