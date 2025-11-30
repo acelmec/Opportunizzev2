@@ -14,6 +14,7 @@ import {
   User,
   Crown,
   Scale,
+  Package,
 } from "lucide-react";
 import {
   Sidebar,
@@ -78,6 +79,14 @@ const corretorRegras = [
     title: "Regras de Negócio",
     url: "/regras-negocio",
     icon: Scale,
+  },
+];
+
+const corretorProdutos = [
+  {
+    title: "Produtos",
+    url: "/produtos",
+    icon: Package,
   },
 ];
 
@@ -245,6 +254,28 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {corretorRegras.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.url)}
+                        data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, "-")}`}
+                      >
+                        <Link href={item.url}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Catálogo</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {corretorProdutos.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
