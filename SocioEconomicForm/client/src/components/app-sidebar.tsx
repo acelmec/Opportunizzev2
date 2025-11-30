@@ -15,6 +15,7 @@ import {
   Crown,
   Scale,
   Package,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -87,6 +88,11 @@ const corretorProdutos = [
     title: "Produtos",
     url: "/produtos",
     icon: Package,
+  },
+  {
+    title: "Apólices",
+    url: "/apolices",
+    icon: FileText,
   },
 ];
 
