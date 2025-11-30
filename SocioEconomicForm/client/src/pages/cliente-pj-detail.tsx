@@ -27,7 +27,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { formatCNPJ, formatCurrency, formatPhone } from "@/lib/validators";
-import type { PessoaJuridica, Socio, Funcionario, Patrimonio, Oportunidade, Interacao } from "@shared/schema";
+import type { PessoaJuridica, Socio, Funcionario, Oportunidade, Interacao } from "@shared/schema";
 
 export default function ClientePJDetail() {
   const [, params] = useRoute("/clientes/pj/:id");
@@ -50,10 +50,6 @@ export default function ClientePJDetail() {
     enabled: !!empresaId,
   });
 
-  const { data: patrimonios } = useQuery<Patrimonio[]>({
-    queryKey: ["/api/pessoas-juridicas", empresaId, "patrimonios"],
-    enabled: !!empresaId,
-  });
 
   const { data: oportunidades } = useQuery<Oportunidade[]>({
     queryKey: ["/api/pessoas-juridicas", empresaId, "oportunidades"],

@@ -50,7 +50,7 @@ const corretorMainNav = [
   },
 ];
 
-const corretorRegistration = [];
+const corretorRegistration: { title: string; url: string; icon: any }[] = [];
 
 const corretorManagement = [
   {

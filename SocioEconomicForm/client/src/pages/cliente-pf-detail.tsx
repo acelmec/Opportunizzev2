@@ -58,7 +58,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { formatCPF, formatCurrency, formatPhone, calculateAge } from "@/lib/validators";
-import type { PessoaFisica, Dependente, Patrimonio, Oportunidade, Interacao } from "@shared/schema";
+import type { PessoaFisica, Dependente, Oportunidade, Interacao } from "@shared/schema";
 
 const dependenteFormSchema = z.object({
   nome: z.string().min(2, "Nome é obrigatório"),
@@ -136,10 +136,6 @@ export default function ClientePFDetail() {
     createDependenteMutation.mutate(data);
   };
 
-  const { data: patrimonios } = useQuery<Patrimonio[]>({
-    queryKey: ["/api/pessoas-fisicas", clienteId, "patrimonios"],
-    enabled: !!clienteId,
-  });
 
   const { data: oportunidades } = useQuery<Oportunidade[]>({
     queryKey: ["/api/pessoas-fisicas", clienteId, "oportunidades"],
@@ -305,10 +301,6 @@ export default function ClientePFDetail() {
                 <User className="mr-2 h-4 w-4" />
                 Perfil
               </TabsTrigger>
-              <TabsTrigger value="patrimonio" data-testid="tab-patrimonio">
-                <Car className="mr-2 h-4 w-4" />
-                Patrimônio
-              </TabsTrigger>
               <TabsTrigger value="familia" data-testid="tab-familia">
                 <Users className="mr-2 h-4 w-4" />
                 Família
@@ -403,56 +395,6 @@ export default function ClientePFDetail() {
               </div>
             </TabsContent>
 
-            <TabsContent value="patrimonio" className="mt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium">Bens e Patrimônio</h3>
-                <Button size="sm" onClick={() => navigate(`/patrimonios/novo?pfId=${clienteId}`)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Adicionar
-                </Button>
-              </div>
-              {patrimonios && patrimonios.length > 0 ? (
-                <div className="grid gap-4">
-                  {patrimonios.map((p) => (
-                    <Card key={p.id}>
-                      <CardContent className="py-4">
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                            {p.tipo === "veiculo" ? (
-                              <Car className="h-5 w-5" />
-                            ) : p.tipo === "imovel" ? (
-                              <Home className="h-5 w-5" />
-                            ) : (
-                              <Briefcase className="h-5 w-5" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium">
-                              {p.tipo === "veiculo"
-                                ? `${p.marcaVeiculo} ${p.modeloVeiculo} ${p.anoModelo || ""}`
-                                : p.descricao || p.tipo}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {p.valorAproximado ? formatCurrency(Number(p.valorAproximado)) : "Valor não informado"}
-                            </div>
-                          </div>
-                          <Badge variant={p.seguradoAtual ? "default" : "outline"}>
-                            {p.seguradoAtual ? "Segurado" : "Não segurado"}
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  icon={Car}
-                  title="Nenhum patrimônio"
-                  description="Adicione veículos, imóveis ou outros bens"
-                  action={{ label: "Adicionar", onClick: () => navigate(`/patrimonios/novo?pfId=${clienteId}`) }}
-                />
-              )}
-            </TabsContent>
 
             <TabsContent value="familia" className="mt-6">
               <div className="flex items-center justify-between mb-4">
