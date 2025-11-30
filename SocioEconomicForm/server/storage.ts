@@ -1653,7 +1653,7 @@ export class DatabaseStorage implements IStorage {
       maxClientes: 100,
       maxApolices: null as number | null,
       maxTokensIa: null as number | null,
-      maxConexoesEvolution: null as number | null
+      maxConexoesEvolution: 1
     };
     let planName: string | null = null;
     
