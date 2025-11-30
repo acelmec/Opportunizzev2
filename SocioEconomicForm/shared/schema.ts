@@ -890,6 +890,7 @@ export const whatsappConfigs = pgTable("whatsapp_configs", {
   endpoint: varchar("endpoint", { length: 500 }).notNull(),
   apiKey: varchar("api_key", { length: 500 }).notNull(),
   ativo: boolean("ativo").default(true),
+  testatoEm: timestamp("testado_em"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -911,6 +912,7 @@ export const tenantSmtpConfig = pgTable("tenant_smtp_config", {
   remetenteNome: varchar("remetente_nome", { length: 200 }),
   remetenteEmail: varchar("remetente_email", { length: 200 }),
   ativo: boolean("ativo").default(true),
+  testatoEm: timestamp("testado_em"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -931,6 +933,7 @@ export const saasSmtpConfig = pgTable("saas_smtp_config", {
   remetenteNome: varchar("remetente_nome", { length: 200 }),
   remetenteEmail: varchar("remetente_email", { length: 200 }),
   ativo: boolean("ativo").default(true),
+  testatoEm: timestamp("testado_em"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

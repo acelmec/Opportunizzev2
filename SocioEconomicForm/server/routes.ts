@@ -919,6 +919,10 @@ export async function registerRoutes(
         if (!smtpConfig || !smtpConfig.ativo) {
           return res.status(400).json({ message: "Configure o SMTP nas configurações da corretora antes de enviar e-mails" });
         }
+        
+        if (!smtpConfig.testatoEm) {
+          return res.status(400).json({ message: "SMTP não foi testado. Acesse Configurações → SMTP e clique em 'Testar SMTP' antes de enviar convites" });
+        }
 
         const result = await sendInviteEmail(smtpConfig, convite, baseUrl);
         if (!result.success) {
@@ -932,6 +936,10 @@ export async function registerRoutes(
         const whatsappConfig = await storage.getWhatsappConfigByUser(userId);
         if (!whatsappConfig || !whatsappConfig.ativo) {
           return res.status(400).json({ message: "Configure o WhatsApp nas configurações antes de enviar mensagens" });
+        }
+        
+        if (!whatsappConfig.testatoEm) {
+          return res.status(400).json({ message: "WhatsApp não foi testado. Acesse Configurações → WhatsApp e clique em 'Testar Conexão' antes de enviar convites" });
         }
 
         const result = await sendInviteWhatsApp(whatsappConfig, convite, baseUrl);
@@ -1057,6 +1065,9 @@ export async function registerRoutes(
       if (!result.success) {
         return res.status(500).json({ message: `Erro ao enviar e-mail de teste: ${result.error}` });
       }
+
+      // Marca como testado com sucesso
+      await storage.markSmtpTestSuccess(userId);
 
       res.json({ success: true, message: "E-mail de teste enviado com sucesso!" });
     } catch (error) {
