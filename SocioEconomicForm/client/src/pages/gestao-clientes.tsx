@@ -46,8 +46,11 @@ import {
   RefreshCw,
   Copy,
   Trash2,
+  Building2,
+  User,
 } from "lucide-react";
-import type { Convite } from "@shared/schema";
+import { formatCPF, formatCNPJ } from "@/lib/validators";
+import type { Convite, PessoaFisica, PessoaJuridica } from "@shared/schema";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pendente: { label: "Pendente", variant: "secondary" },
@@ -76,8 +79,12 @@ export default function GestaoClientesPage() {
     queryKey: ["/api/convites"],
   });
 
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["/api/clientes"],
+  const { data: pessoasFisicas = [] } = useQuery<PessoaFisica[]>({
+    queryKey: ["/api/pessoas-fisicas"],
+  });
+
+  const { data: pessoasJuridicas = [] } = useQuery<PessoaJuridica[]>({
+    queryKey: ["/api/pessoas-juridicas"],
   });
 
   const createMutation = useMutation({
@@ -443,10 +450,73 @@ export default function GestaoClientesPage() {
             <Users className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(clientes as any[]).length}</div>
+            <div className="text-2xl font-bold">{pessoasFisicas.length + pessoasJuridicas.length}</div>
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Clientes Cadastrados</CardTitle>
+          <CardDescription>
+            Lista de todos os clientes (Pessoas Físicas e Jurídicas)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {pessoasFisicas.length === 0 && pessoasJuridicas.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum cliente cadastrado</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>CPF / CNPJ</TableHead>
+                  <TableHead>E-mail</TableHead>
+                  <TableHead>Telefone</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pessoasFisicas.map((pf) => (
+                  <TableRow key={`pf-${pf.id}`}>
+                    <TableCell>
+                      <Badge variant="outline" className="gap-1">
+                        <User className="h-3 w-3" />
+                        Física
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{pf.nomeCompleto}</TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {pf.cpf ? formatCPF(pf.cpf) : "-"}
+                    </TableCell>
+                    <TableCell>{pf.email || "-"}</TableCell>
+                    <TableCell>{pf.telefone || "-"}</TableCell>
+                  </TableRow>
+                ))}
+                {pessoasJuridicas.map((pj) => (
+                  <TableRow key={`pj-${pj.id}`}>
+                    <TableCell>
+                      <Badge variant="outline" className="gap-1">
+                        <Building2 className="h-3 w-3" />
+                        Jurídica
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{pj.razaoSocial}</TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {pj.cnpj ? formatCNPJ(pj.cnpj) : "-"}
+                    </TableCell>
+                    <TableCell>{pj.email || "-"}</TableCell>
+                    <TableCell>{pj.telefone || "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
