@@ -745,10 +745,11 @@ export async function registerRoutes(
   });
 
   // Convites routes
-  app.get("/api/convites", isEmailAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/convites", isEmailAuthenticated, requireTenant, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.claims?.sub;
-      const convites = await storage.getAllConvitesByCorretor(userId);
+      const tenantId = req.tenantId!;
+      const convites = await storage.getAllConvitesByCorretorAndTenant(userId, tenantId);
       res.json(convites);
     } catch (error) {
       console.error("Error fetching convites:", error);
@@ -1065,9 +1066,6 @@ export async function registerRoutes(
       if (!result.success) {
         return res.status(500).json({ message: `Erro ao enviar e-mail de teste: ${result.error}` });
       }
-
-      // Marca como testado com sucesso
-      await storage.markSmtpTestSuccess(userId);
 
       res.json({ success: true, message: "E-mail de teste enviado com sucesso!" });
     } catch (error) {
