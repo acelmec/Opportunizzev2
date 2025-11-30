@@ -2257,28 +2257,27 @@ export async function registerRoutes(
   app.get("/api/tipos-seguro", isEmailAuthenticated, async (req: Request, res: Response) => {
     try {
       const tipos = await storage.getAllTiposSeguroMaster();
-      res.json(tipos.filter(t => t.ativo));
+      const sorted = tipos.sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+      res.json(sorted);
     } catch (error) {
       console.error("Error fetching tipos de seguro:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  // Public route for tenants to view active business rules
+  // Public route for tenants to view active business rules (from SaaS Master)
   app.get("/api/regras-negocio", isEmailAuthenticated, async (req: Request, res: Response) => {
     try {
       const rules = await storage.getAllBusinessRuleTemplates();
       const tipos = await storage.getAllTiposSeguroMaster();
       
-      // Enrich rules with tipo seguro name
-      const enrichedRules = rules
-        .filter(r => r.ativo)
-        .map(rule => ({
-          ...rule,
-          tipoSeguroNome: rule.tipoSeguroId 
-            ? tipos.find(t => t.id === rule.tipoSeguroId)?.nome || "Desconhecido"
-            : "Todos os produtos",
-        }));
+      // Return all rules with tipo seguro name enrichment
+      const enrichedRules = rules.map(rule => ({
+        ...rule,
+        tipoSeguroNome: rule.tipoSeguroId 
+          ? tipos.find(t => t.id === rule.tipoSeguroId)?.nome || "Desconhecido"
+          : "Todos os produtos",
+      }));
       
       res.json(enrichedRules);
     } catch (error) {

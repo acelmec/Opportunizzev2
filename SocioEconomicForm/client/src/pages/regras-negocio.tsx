@@ -159,7 +159,11 @@ export default function RegrasNegocio() {
     tipoPessoa: "ambos" as "pf" | "pj" | "ambos",
     tipoSeguroId: "",
     scoreBonus: 10,
+    campo: "",
+    operador: "=",
+    valor: "",
   });
+  const [condicoes, setCondicoes] = useState<any[]>([]);
 
   const { data: rules = [], isLoading } = useQuery<BusinessRule[]>({
     queryKey: ["/api/regras-negocio"],
@@ -214,7 +218,8 @@ export default function RegrasNegocio() {
   });
 
   const resetForm = () => {
-    setFormData({ nome: "", descricao: "", tipoPessoa: "ambos", tipoSeguroId: "", scoreBonus: 10 });
+    setFormData({ nome: "", descricao: "", tipoPessoa: "ambos", tipoSeguroId: "", scoreBonus: 10, campo: "", operador: "=", valor: "" });
+    setCondicoes([]);
   };
 
   const handleOpenCreate = () => {
@@ -231,8 +236,23 @@ export default function RegrasNegocio() {
       tipoPessoa: rule.tipoPessoa,
       tipoSeguroId: rule.tipoSeguroId || "",
       scoreBonus: rule.scoreBonus || 10,
+      campo: "",
+      operador: "=",
+      valor: "",
     });
+    setCondicoes(rule.condicoes || []);
     setCreateDialogOpen(true);
+  };
+
+  const handleAddCondicao = () => {
+    if (formData.campo && formData.valor) {
+      setCondicoes([...condicoes, { campo: formData.campo, operador: formData.operador, valor: formData.valor }]);
+      setFormData({ ...formData, campo: "", operador: "=", valor: "" });
+    }
+  };
+
+  const handleRemoveCondicao = (index: number) => {
+    setCondicoes(condicoes.filter((_, i) => i !== index));
   };
 
   const handleSave = () => {
@@ -242,9 +262,9 @@ export default function RegrasNegocio() {
     }
 
     if (editingRule) {
-      updateMutation.mutate({ id: editingRule.id, ...formData, condicoes: editingRule.condicoes, regras: {} });
+      updateMutation.mutate({ id: editingRule.id, ...formData, condicoes, regras: {} });
     } else {
-      createMutation.mutate({ ...formData, condicoes: [], regras: {} });
+      createMutation.mutate({ ...formData, condicoes, regras: {} });
     }
   };
 
@@ -369,6 +389,70 @@ export default function RegrasNegocio() {
                     min="0"
                   />
                 </div>
+              </div>
+
+              {/* Condições */}
+              <div className="space-y-3 pt-4 border-t">
+                <Label className="text-base font-semibold">Condições (Campos Socioeconômicos)</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  <Select value={formData.campo} onValueChange={(v) => setFormData({ ...formData, campo: v })}>
+                    <SelectTrigger className="col-span-2">
+                      <SelectValue placeholder="Campo..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="idade">Idade</SelectItem>
+                      <SelectItem value="profissao">Profissão</SelectItem>
+                      <SelectItem value="renda">Renda Mensal</SelectItem>
+                      <SelectItem value="estadoCivil">Estado Civil</SelectItem>
+                      <SelectItem value="dependentes">Dependentes</SelectItem>
+                      <SelectItem value="veiculo">Veículo</SelectItem>
+                      <SelectItem value="imovel">Imóvel</SelectItem>
+                      <SelectItem value="moto">Moto/Moto Elétrica</SelectItem>
+                      <SelectItem value="caminhao">Caminhão/Frota</SelectItem>
+                      <SelectItem value="segmento">Segmento Empresa</SelectItem>
+                      <SelectItem value="maquinas">Máquinas/Equipamentos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={formData.operador} onValueChange={(v) => setFormData({ ...formData, operador: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="=">=</SelectItem>
+                      <SelectItem value="!=">≠</SelectItem>
+                      <SelectItem value=">">&gt;</SelectItem>
+                      <SelectItem value=">=">&gt;=</SelectItem>
+                      <SelectItem value="<">&lt;</SelectItem>
+                      <SelectItem value="<=">&lt;=</SelectItem>
+                      <SelectItem value="contains">contém</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Valor"
+                    value={formData.valor}
+                    onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
+                  />
+                  <Button onClick={handleAddCondicao} variant="outline" className="col-span-4">
+                    Adicionar Condição
+                  </Button>
+                </div>
+
+                {/* Lista de condições adicionadas */}
+                {condicoes.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Condições Adicionadas:</Label>
+                    <div className="space-y-1">
+                      {condicoes.map((cond, idx) => (
+                        <div key={idx} className="flex items-center justify-between bg-muted p-2 rounded text-sm">
+                          <span>{CAMPOS_LABELS[cond.campo] || cond.campo} {cond.operador} {cond.valor}</span>
+                          <Button size="sm" variant="ghost" onClick={() => handleRemoveCondicao(idx)}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
