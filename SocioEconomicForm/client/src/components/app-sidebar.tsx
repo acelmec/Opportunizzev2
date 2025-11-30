@@ -83,12 +83,7 @@ const corretorRegras = [
   },
 ];
 
-const corretorProdutos = [
-  {
-    title: "Produtos",
-    url: "/produtos",
-    icon: Package,
-  },
+const corretorCatalogo = [
   {
     title: "Seguradoras",
     url: "/seguradoras",
@@ -286,7 +281,7 @@ export function AppSidebar() {
               <SidebarGroupLabel>Catálogo</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {corretorProdutos.map((item) => (
+                  {corretorCatalogo.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild

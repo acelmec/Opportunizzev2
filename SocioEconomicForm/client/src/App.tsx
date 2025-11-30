@@ -26,7 +26,6 @@ import Oportunidades from "@/pages/oportunidades";
 import Historico from "@/pages/historico";
 import GestaoClientes from "@/pages/gestao-clientes";
 import Configuracoes from "@/pages/configuracoes";
-import Produtos from "@/pages/produtos";
 import Seguradoras from "@/pages/seguradoras";
 import Apolices from "@/pages/apolices";
 import ClienteDashboard from "@/pages/cliente-dashboard";
@@ -99,7 +98,6 @@ function CorretorRouter() {
       <Route path="/historico" component={Historico} />
       <Route path="/gestao-clientes" component={GestaoClientes} />
       <Route path="/regras-negocio" component={RegrasNegocio} />
-      <Route path="/produtos" component={Produtos} />
       <Route path="/seguradoras" component={Seguradoras} />
       <Route path="/apolices" component={Apolices} />
       <Route path="/configuracoes" component={Configuracoes} />
