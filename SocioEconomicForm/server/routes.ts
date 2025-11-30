@@ -2263,6 +2263,111 @@ export async function registerRoutes(
   });
 
   // ============================================
+  // Tenant Apolices - Importação e Vinculação
+  // ============================================
+  
+  app.post("/api/tenant/apolices", isEmailAuthenticated, requireTenant, async (req: Request, res: Response) => {
+    try {
+      const tenantId = req.tenantId!;
+      const { numeroApolice, seguradoraId, tipoSeguroId, dataInicio, dataVencimento, premioTotal, status, observacoes } = req.body;
+      
+      if (!numeroApolice) {
+        return res.status(400).json({ message: "Número da apólice é obrigatório" });
+      }
+
+      const policy = await storage.createTenantPolicy({
+        tenantId,
+        numeroApolice,
+        seguradoraId: seguradoraId || null,
+        tipoSeguroId: tipoSeguroId || null,
+        dataInicio: dataInicio ? new Date(dataInicio) : null,
+        dataVencimento: dataVencimento ? new Date(dataVencimento) : null,
+        premioTotal: premioTotal ? parseFloat(premioTotal) : null,
+        status: status || "ativa",
+        observacoes: observacoes || null,
+      });
+      res.status(201).json(policy);
+    } catch (error) {
+      console.error("Error creating apolice:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/tenant/apolices/:id/vincular", isEmailAuthenticated, requireTenant, async (req: Request, res: Response) => {
+    try {
+      const tenantId = req.tenantId!;
+      const { pessoaFisicaId, pessoaJuridicaId } = req.body;
+      
+      const policy = await storage.getTenantPolicies(tenantId);
+      const apoilce = policy.find((p: any) => p.id === req.params.id);
+      
+      if (!apoilce) {
+        return res.status(404).json({ message: "Apólice não encontrada" });
+      }
+
+      const updated = await storage.updateTenantPolicy(req.params.id, {
+        pessoaFisicaId: pessoaFisicaId || null,
+        pessoaJuridicaId: pessoaJuridicaId || null,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error linking apolice:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/tenant/apolices/import", isEmailAuthenticated, requireTenant, async (req: Request, res: Response) => {
+    try {
+      const tenantId = req.tenantId!;
+      const { apolices } = req.body;
+      
+      if (!Array.isArray(apolices) || apolices.length === 0) {
+        return res.status(400).json({ message: "Lista de apólices é obrigatória" });
+      }
+
+      const created = [];
+      for (const ap of apolices) {
+        const policy = await storage.createTenantPolicy({
+          tenantId,
+          numeroApolice: ap.numeroApolice,
+          seguradoraId: ap.seguradoraId || null,
+          tipoSeguroId: ap.tipoSeguroId || null,
+          dataInicio: ap.dataInicio ? new Date(ap.dataInicio) : null,
+          dataVencimento: ap.dataVencimento ? new Date(ap.dataVencimento) : null,
+          premioTotal: ap.premioTotal ? parseFloat(ap.premioTotal) : null,
+          status: ap.status || "ativa",
+          observacoes: ap.observacoes || null,
+        });
+        created.push(policy);
+      }
+      
+      res.status(201).json({ created: created.length, apolices: created });
+    } catch (error) {
+      console.error("Error importing apolices:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/tenant/apolices/:id", isEmailAuthenticated, requireTenant, async (req: Request, res: Response) => {
+    try {
+      const tenantId = req.tenantId!;
+      const policies = await storage.getTenantPolicies(tenantId);
+      const policy = policies.find((p: any) => p.id === req.params.id);
+      
+      if (!policy) {
+        return res.status(404).json({ message: "Apólice não encontrada" });
+      }
+
+      await storage.deleteTenantPolicy(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting apolice:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // ============================================
   // Public Routes - Seguradoras e Tipos de Seguro (read-only para tenants)
   // ============================================
   app.get("/api/seguradoras", isEmailAuthenticated, async (req: Request, res: Response) => {
