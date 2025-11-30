@@ -12,6 +12,7 @@ import {
   Bot,
   MessageSquare,
   Link2,
+  Package,
 } from "lucide-react";
 import {
   Sidebar,
@@ -69,6 +70,11 @@ const catalogNav = [
     title: "Tipos de Seguro",
     url: "/admin/tipos-seguro",
     icon: FileText,
+  },
+  {
+    title: "Produtos",
+    url: "/admin/produtos",
+    icon: Package,
   },
   {
     title: "Vinculações",

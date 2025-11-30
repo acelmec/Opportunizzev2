@@ -39,6 +39,7 @@ import AdminUsers from "@/pages/admin/users";
 import AdminPlans from "@/pages/admin/plans";
 import AdminSeguradoras from "@/pages/admin/seguradoras";
 import AdminTiposSeguro from "@/pages/admin/tipos-seguro";
+import AdminProdutos from "@/pages/admin/produtos";
 import AdminVinculacoes from "@/pages/admin/vinculacoes";
 import AdminSmtpConfig from "@/pages/admin/config-smtp";
 import AdminChatgptConfig from "@/pages/admin/config-chatgpt";
@@ -56,6 +57,7 @@ function SaasAdminRouter() {
       <Route path="/admin/plans" component={AdminPlans} />
       <Route path="/admin/seguradoras" component={AdminSeguradoras} />
       <Route path="/admin/tipos-seguro" component={AdminTiposSeguro} />
+      <Route path="/admin/produtos" component={AdminProdutos} />
       <Route path="/admin/vinculacoes" component={AdminVinculacoes} />
       <Route path="/admin/config/smtp" component={AdminSmtpConfig} />
       <Route path="/admin/config/chatgpt" component={AdminChatgptConfig} />
