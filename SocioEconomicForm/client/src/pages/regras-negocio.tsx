@@ -242,7 +242,7 @@ export default function RegrasNegocio() {
     }
 
     if (editingRule) {
-      updateMutation.mutate({ id: editingRule.id, ...formData, condicoes: editingRule.condicoes, regras: editingRule.regras });
+      updateMutation.mutate({ id: editingRule.id, ...formData, condicoes: editingRule.condicoes, regras: {} });
     } else {
       createMutation.mutate({ ...formData, condicoes: [], regras: {} });
     }
@@ -351,7 +351,7 @@ export default function RegrasNegocio() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">Todos os produtos</SelectItem>
-                        {tipos.map((t: any) => (
+                        {(tipos as any[]).map((t: any) => (
                           <SelectItem key={t.id} value={t.id}>
                             {t.nome}
                           </SelectItem>
