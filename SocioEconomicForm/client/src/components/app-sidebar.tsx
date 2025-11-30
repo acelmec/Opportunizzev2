@@ -90,6 +90,11 @@ const corretorProdutos = [
     icon: Package,
   },
   {
+    title: "Seguradoras",
+    url: "/seguradoras",
+    icon: Shield,
+  },
+  {
     title: "Apólices",
     url: "/apolices",
     icon: FileText,

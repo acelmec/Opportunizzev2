@@ -368,8 +368,8 @@ export default function Apolices() {
                       {getSeguradoraNome(apolice.seguradoraId)}
                     </CardDescription>
                   </div>
-                  <Badge className={statusColors[apolice.status] || "bg-gray-100 text-gray-800"}>
-                    {statusLabels[apolice.status]}
+                  <Badge className={apolice.status ? statusColors[apolice.status] || "bg-gray-100 text-gray-800" : "bg-gray-100 text-gray-800"}>
+                    {apolice.status ? statusLabels[apolice.status] : "Desconhecido"}
                   </Badge>
                 </div>
               </CardHeader>
