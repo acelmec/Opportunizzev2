@@ -23,7 +23,6 @@ import ClientePJDetail from "@/pages/cliente-pj-detail";
 import CadastroPF from "@/pages/cadastro-pf";
 import CadastroPJ from "@/pages/cadastro-pj";
 import Oportunidades from "@/pages/oportunidades";
-import Patrimonios from "@/pages/patrimonios";
 import Historico from "@/pages/historico";
 import GestaoClientes from "@/pages/gestao-clientes";
 import Configuracoes from "@/pages/configuracoes";
@@ -92,7 +91,6 @@ function CorretorRouter() {
       <Route path="/cadastro/pf" component={CadastroPF} />
       <Route path="/cadastro/pj" component={CadastroPJ} />
       <Route path="/oportunidades" component={Oportunidades} />
-      <Route path="/patrimonios" component={Patrimonios} />
       <Route path="/historico" component={Historico} />
       <Route path="/gestao-clientes" component={GestaoClientes} />
       <Route path="/regras-negocio" component={RegrasNegocio} />

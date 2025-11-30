@@ -50,25 +50,9 @@ const corretorMainNav = [
   },
 ];
 
-const corretorRegistration = [
-  {
-    title: "Novo Cliente PF",
-    url: "/cadastro/pf",
-    icon: UserPlus,
-  },
-  {
-    title: "Nova Empresa PJ",
-    url: "/cadastro/pj",
-    icon: Building2,
-  },
-];
+const corretorRegistration = [];
 
 const corretorManagement = [
-  {
-    title: "Patrimônios",
-    url: "/patrimonios",
-    icon: Car,
-  },
   {
     title: "Oportunidades",
     url: "/oportunidades",
