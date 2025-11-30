@@ -73,7 +73,6 @@ const formSchema = z.object({
   rendaMensalLiquida: z.string().optional(),
   gastosMensais: z.string().optional(),
   economias: z.string().optional(),
-  numeroDependentes: z.string().optional(),
   consentimentoLgpd: z.boolean().default(false),
   consentimentoEscopo: z.string().optional(),
   observacoes: z.string().optional(),
@@ -87,7 +86,8 @@ const steps = [
   { id: 3, title: "Endereço", icon: MapPin },
   { id: 4, title: "Profissão", icon: Briefcase },
   { id: 5, title: "Finanças", icon: DollarSign },
-  { id: 6, title: "Consentimento", icon: Shield },
+  { id: 6, title: "Dependentes", icon: User },
+  { id: 7, title: "Consentimento", icon: Shield },
 ];
 
 export default function CadastroPF() {
@@ -122,7 +122,6 @@ export default function CadastroPF() {
       rendaMensalLiquida: "",
       gastosMensais: "",
       economias: "",
-      numeroDependentes: "",
       consentimentoLgpd: false,
       consentimentoEscopo: "",
       observacoes: "",
@@ -226,7 +225,7 @@ export default function CadastroPF() {
       case 4:
         return ["profissao", "empresaEmprego", "ocupacaoRisco"];
       case 5:
-        return ["rendaMensalBruta", "rendaMensalLiquida", "gastosMensais", "economias", "numeroDependentes"];
+        return ["rendaMensalBruta", "rendaMensalLiquida", "gastosMensais", "economias"];
       case 6:
         return ["consentimentoLgpd", "consentimentoEscopo", "observacoes"];
       default:
