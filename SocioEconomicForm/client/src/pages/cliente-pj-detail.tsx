@@ -223,10 +223,6 @@ export default function ClientePJDetail() {
                 <Users className="mr-2 h-4 w-4" />
                 Funcionários
               </TabsTrigger>
-              <TabsTrigger value="patrimonio" data-testid="tab-patrimonio">
-                <Car className="mr-2 h-4 w-4" />
-                Patrimônio
-              </TabsTrigger>
               <TabsTrigger value="oportunidades" data-testid="tab-oportunidades">
                 <Target className="mr-2 h-4 w-4" />
                 Oportunidades
@@ -376,46 +372,6 @@ export default function ClientePJDetail() {
               )}
             </TabsContent>
 
-            <TabsContent value="patrimonio" className="mt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium">Patrimônio Empresarial</h3>
-                <Button size="sm" onClick={() => navigate(`/patrimonios/novo?pjId=${empresaId}`)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Adicionar
-                </Button>
-              </div>
-              {patrimonios && patrimonios.length > 0 ? (
-                <div className="grid gap-4">
-                  {patrimonios.map((p) => (
-                    <Card key={p.id}>
-                      <CardContent className="py-4">
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                            <Car className="h-5 w-5" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium">{p.descricao || p.tipo}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {p.valorAproximado ? formatCurrency(Number(p.valorAproximado)) : "Valor não informado"}
-                            </div>
-                          </div>
-                          <Badge variant={p.seguradoAtual ? "default" : "outline"}>
-                            {p.seguradoAtual ? "Segurado" : "Não segurado"}
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  icon={Car}
-                  title="Nenhum patrimônio"
-                  description="Adicione veículos, equipamentos ou imóveis"
-                  action={{ label: "Adicionar", onClick: () => navigate(`/patrimonios/novo?pjId=${empresaId}`) }}
-                />
-              )}
-            </TabsContent>
 
             <TabsContent value="oportunidades" className="mt-6">
               <div className="flex items-center justify-between mb-4">
