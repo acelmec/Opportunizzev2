@@ -417,7 +417,7 @@ export const businessRuleTemplates = pgTable("business_rule_templates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Tenant Customized Contacts for Insurance Companies
+// Tenant Customized Contacts for Insurance Companies (Contatos Local)
 export const tenantSeguradoraContatos = pgTable("tenant_seguradora_contatos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "cascade" }).notNull(),
@@ -432,6 +432,44 @@ export const tenantSeguradoraContatos = pgTable("tenant_seguradora_contatos", {
   estado: varchar("estado", { length: 2 }),
   cidade: varchar("cidade", { length: 100 }),
   observacoes: text("observacoes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Tenant Seguradora System Passwords
+export const tenantSeguradoraSenhas = pgTable("tenant_seguradora_senhas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  seguradoraId: varchar("seguradora_id").references(() => seguradorasMaster.id, { onDelete: "cascade" }).notNull(),
+  nomeSistema: varchar("nome_sistema", { length: 200 }).notNull(),
+  url: varchar("url", { length: 500 }),
+  usuario: varchar("usuario", { length: 200 }).notNull(),
+  senha: text("senha").notNull(),
+  observacoes: text("observacoes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Tenant Seguradora Phones by Type
+export const tipoTelefoneEnum = pgEnum("tipo_telefone", [
+  "suporte_comercial",
+  "assistencia",
+  "sinistros",
+]);
+
+export const canalContatoEnum = pgEnum("canal_contato", [
+  "email",
+  "whatsapp",
+  "telefone",
+]);
+
+export const tenantSeguradoraTelefones = pgTable("tenant_seguradora_telefones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  seguradoraId: varchar("seguradora_id").references(() => seguradorasMaster.id, { onDelete: "cascade" }).notNull(),
+  tipoTelefone: tipoTelefoneEnum("tipo_telefone").notNull(),
+  canalContato: canalContatoEnum("canal_contato").notNull(),
+  valor: varchar("valor", { length: 200 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

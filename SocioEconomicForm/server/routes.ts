@@ -2224,19 +2224,108 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/tenant/seguradora-contatos/:seguradoraId", isEmailAuthenticated, requireTenant, async (req: Request, res: Response) => {
+  app.delete("/api/tenant/seguradora-contatos/:id", isEmailAuthenticated, requireTenant, async (req: Request, res: Response) => {
     try {
       const tenantId = req.tenantId!;
-      
-      const existing = await storage.getTenantSeguradoraContato(tenantId, req.params.seguradoraId);
-      if (!existing) {
-        return res.status(404).json({ message: "Contato não encontrado" });
-      }
-      
-      await storage.deleteTenantSeguradoraContato(tenantId, req.params.seguradoraId);
+      await storage.db.delete(storage.tenantSeguradoraContatos).where(
+        sql`${storage.tenantSeguradoraContatos.id} = ${req.params.id} AND ${storage.tenantSeguradoraContatos.tenantId} = ${tenantId}`
+      );
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting tenant seguradora contato:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Tenant Seguradora Senhas (System Passwords)
+  app.get("/api/tenant/seguradora-senhas/:seguradoraId", isEmailAuthenticated, requireTenant, isCorretorOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const tenantId = req.tenantId!;
+      const senhas = await storage.db.select().from(storage.tenantSeguradoraSenhas).where(
+        sql`${storage.tenantSeguradoraSenhas.tenantId} = ${tenantId} AND ${storage.tenantSeguradoraSenhas.seguradoraId} = ${req.params.seguradoraId}`
+      );
+      res.json(senhas.map(s => ({ ...s, senha: s.senha ? "***REDACTED***" : null })));
+    } catch (error) {
+      console.error("Error fetching senhas:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/tenant/seguradora-senhas", isEmailAuthenticated, requireTenant, isCorretorOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const tenantId = req.tenantId!;
+      const { seguradoraId, nomeSistema, url, usuario, senha } = req.body;
+      const novaSenh = await storage.db.insert(storage.tenantSeguradoraSenhas).values({
+        id: sql`gen_random_uuid()`,
+        tenantId,
+        seguradoraId,
+        nomeSistema,
+        url,
+        usuario,
+        senha,
+      }).returning();
+      res.json(novaSenh[0]);
+    } catch (error) {
+      console.error("Error creating senha:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/tenant/seguradora-senhas/:id", isEmailAuthenticated, requireTenant, isCorretorOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const tenantId = req.tenantId!;
+      await storage.db.delete(storage.tenantSeguradoraSenhas).where(
+        sql`${storage.tenantSeguradoraSenhas.id} = ${req.params.id} AND ${storage.tenantSeguradoraSenhas.tenantId} = ${tenantId}`
+      );
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting senha:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Tenant Seguradora Telefones
+  app.get("/api/tenant/seguradora-telefones/:seguradoraId", isEmailAuthenticated, requireTenant, async (req: Request, res: Response) => {
+    try {
+      const tenantId = req.tenantId!;
+      const telefones = await storage.db.select().from(storage.tenantSeguradoraTelefones).where(
+        sql`${storage.tenantSeguradoraTelefones.tenantId} = ${tenantId} AND ${storage.tenantSeguradoraTelefones.seguradoraId} = ${req.params.seguradoraId}`
+      );
+      res.json(telefones);
+    } catch (error) {
+      console.error("Error fetching telefones:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/tenant/seguradora-telefones", isEmailAuthenticated, requireTenant, async (req: Request, res: Response) => {
+    try {
+      const tenantId = req.tenantId!;
+      const { seguradoraId, tipoTelefone, canalContato, valor } = req.body;
+      const novoTel = await storage.db.insert(storage.tenantSeguradoraTelefones).values({
+        id: sql`gen_random_uuid()`,
+        tenantId,
+        seguradoraId,
+        tipoTelefone,
+        canalContato,
+        valor,
+      }).returning();
+      res.json(novoTel[0]);
+    } catch (error) {
+      console.error("Error creating telefone:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/tenant/seguradora-telefones/:id", isEmailAuthenticated, requireTenant, async (req: Request, res: Response) => {
+    try {
+      const tenantId = req.tenantId!;
+      await storage.db.delete(storage.tenantSeguradoraTelefones).where(
+        sql`${storage.tenantSeguradoraTelefones.id} = ${req.params.id} AND ${storage.tenantSeguradoraTelefones.tenantId} = ${tenantId}`
+      );
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting telefone:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
