@@ -17,7 +17,7 @@ export default function AceitarConvitePage() {
 
   const { data: user } = useQuery({
     queryKey: ["/api/auth/user"],
-  });
+  }) as { data?: { id: string; email: string; firstName: string; lastName: string; role: string } };
 
   useEffect(() => {
     const acceptInvite = async () => {
