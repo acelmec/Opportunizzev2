@@ -184,6 +184,83 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/pessoas-fisicas-com-convites", isEmailAuthenticated, requireTenant, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.claims?.sub;
+      const tenantId = req.tenantId!;
+      const clientes = await storage.getAllPessoasFisicas(tenantId);
+      const convites = await storage.getAllConvitesByCorretorAndTenant(userId, tenantId);
+      
+      const clientesComConvite = clientes.map((c) => {
+        const convite = convites.find((cv) => cv.nomeCliente === c.nomeCompleto && cv.email === c.email);
+        return {
+          ...c,
+          conviteStatus: convite ? convite.status : "sem_convite",
+          conviteId: convite?.id,
+        };
+      });
+      
+      res.json(clientesComConvite);
+    } catch (error) {
+      console.error("Error fetching pessoas fisicas com convites:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/convites/batch-enviar", isEmailAuthenticated, requireTenant, isCorretorOrAdmin, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.claims?.sub;
+      const tenantId = req.tenantId!;
+      const { clienteIds } = req.body;
+
+      if (!Array.isArray(clienteIds) || clienteIds.length === 0) {
+        return res.status(400).json({ message: "Lista de clientes é obrigatória" });
+      }
+
+      const smtpConfig = await storage.getTenantSmtpConfig(tenantId);
+      if (!smtpConfig || !smtpConfig.ativo) {
+        return res.status(400).json({ message: "Configure o SMTP nas configurações da corretora" });
+      }
+      if (!smtpConfig.testatoEm) {
+        return res.status(400).json({ message: "SMTP não foi testado. Clique em 'Testar SMTP' antes" });
+      }
+
+      const results = [];
+      for (const clienteId of clienteIds) {
+        const cliente = await storage.getPessoaFisica(clienteId, tenantId);
+        if (!cliente || !cliente.email) continue;
+
+        const existingConvite = await storage.getConviteByToken("");
+        const convites = await storage.getAllConvitesByCorretorAndTenant(userId, tenantId);
+        const hasConvite = convites.some((c) => c.nomeCliente === cliente.nomeCompleto && c.email === cliente.email);
+
+        if (!hasConvite) {
+          const convite = await storage.createConvite({
+            corretorId: userId,
+            tenantId,
+            nomeCliente: cliente.nomeCompleto,
+            email: cliente.email,
+            token: require("crypto").randomBytes(32).toString("hex"),
+            status: "enviado",
+            canalEnvio: "email",
+            criadoEm: new Date(),
+            atualizadoEm: new Date(),
+            aceitoEm: null,
+            expiraEm: null,
+            clienteUserId: null,
+          });
+          await apiRequest("POST", `/api/convites/${convite.id}/enviar`, {});
+          results.push({ clienteId, status: "enviado", conviteId: convite.id });
+        }
+      }
+
+      res.json({ enviados: results.length, detalhes: results });
+    } catch (error: any) {
+      console.error("Error batch sending convites:", error);
+      res.status(500).json({ message: error.message || "Internal server error" });
+    }
+  });
+
   app.get("/api/pessoas-fisicas/:id", isEmailAuthenticated, async (req: Request, res: Response) => {
     try {
       const tenantId = req.tenantId;

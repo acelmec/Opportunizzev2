@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -10,20 +12,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PFCard } from "@/components/client-card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
 import { ClientListSkeleton } from "@/components/loading-state";
-import { Search, UserPlus, Users, Filter, X } from "lucide-react";
+import { Search, UserPlus, Users, Filter, X, Mail, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { PessoaFisica } from "@shared/schema";
+
+interface ClienteComConvite extends PessoaFisica {
+  conviteStatus?: "sem_convite" | "pendente" | "aceito";
+  conviteId?: string;
+}
 
 export default function ClientesPF() {
   const [, navigate] = useLocation();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [estadoCivil, setEstadoCivil] = useState<string>("");
   const [scoreMin, setScoreMin] = useState<string>("");
+  const [selectedClientes, setSelectedClientes] = useState<Set<string>>(new Set());
 
-  const { data: clientes, isLoading } = useQuery<PessoaFisica[]>({
-    queryKey: ["/api/pessoas-fisicas"],
+  const { data: clientes, isLoading } = useQuery<ClienteComConvite[]>({
+    queryKey: ["/api/pessoas-fisicas-com-convites"],
   });
 
   const filteredClientes = clientes?.filter((cliente) => {
@@ -58,15 +76,57 @@ export default function ClientesPF() {
     setScoreMin("");
   };
 
+  const sendConvitesMutation = useMutation({
+    mutationFn: async (clienteIds: string[]) => {
+      return await apiRequest("POST", "/api/convites/batch-enviar", { clienteIds });
+    },
+    onSuccess: () => {
+      toast({ title: "Convites enviados com sucesso!" });
+      setSelectedClientes(new Set());
+      queryClient.invalidateQueries({ queryKey: ["/api/pessoas-fisicas-com-convites"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedClientes(new Set(filteredClientes?.map((c) => c.id) || []));
+    } else {
+      setSelectedClientes(new Set());
+    }
+  };
+
+  const handleSelectCliente = (clienteId: string, checked: boolean) => {
+    const newSelected = new Set(selectedClientes);
+    if (checked) {
+      newSelected.add(clienteId);
+    } else {
+      newSelected.delete(clienteId);
+    }
+    setSelectedClientes(newSelected);
+  };
+
+  const getStatusBadge = (status?: string) => {
+    if (status === "pendente") {
+      return <Badge variant="outline" className="bg-yellow-50">⏱️ Pendente</Badge>;
+    }
+    if (status === "aceito") {
+      return <Badge variant="default" className="bg-green-600">✓ Aceito</Badge>;
+    }
+    return <Badge variant="secondary">- Sem Convite</Badge>;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold" data-testid="text-page-title">
-            Pessoas Físicas
+            Clientes Cadastrados
           </h1>
           <p className="text-muted-foreground">
-            Gerencie os cadastros de clientes pessoa física
+            Gerencie e envie convites para seus clientes
           </p>
         </div>
         <Button onClick={() => navigate("/cadastro/pf")} data-testid="button-new-pf">
@@ -98,16 +158,6 @@ export default function ClientesPF() {
             <SelectItem value="uniao_estavel">União Estável</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={scoreMin} onValueChange={setScoreMin}>
-          <SelectTrigger className="w-full md:w-40" data-testid="select-score">
-            <SelectValue placeholder="Score Mín." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="70">Score 70+</SelectItem>
-            <SelectItem value="50">Score 50+</SelectItem>
-            <SelectItem value="30">Score 30+</SelectItem>
-          </SelectContent>
-        </Select>
         {hasFilters && (
           <Button
             variant="ghost"
@@ -120,37 +170,71 @@ export default function ClientesPF() {
         )}
       </div>
 
-      {hasFilters && filteredClientes && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Filter className="h-4 w-4" />
-          <span>
-            {filteredClientes.length} resultado(s) encontrado(s)
-          </span>
+      {selectedClientes.size > 0 && (
+        <div className="flex items-center justify-between bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <span className="font-medium">{selectedClientes.size} cliente(s) selecionado(s)</span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => sendConvitesMutation.mutate(Array.from(selectedClientes))}
+              disabled={sendConvitesMutation.isPending}
+            >
+              {sendConvitesMutation.isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando...</>
+              ) : (
+                <><Mail className="mr-2 h-4 w-4" />Enviar Convites</>
+              )}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setSelectedClientes(new Set())}>
+              Limpar
+            </Button>
+          </div>
         </div>
       )}
 
       {isLoading ? (
         <ClientListSkeleton />
       ) : filteredClientes && filteredClientes.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredClientes.map((cliente) => (
-            <PFCard key={cliente.id} cliente={cliente} />
-          ))}
+        <div className="border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedClientes.size === filteredClientes.length && filteredClientes.length > 0}
+                    onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                  />
+                </TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>CPF</TableHead>
+                <TableHead>E-mail</TableHead>
+                <TableHead className="w-32">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredClientes.map((cliente) => (
+                <TableRow key={cliente.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedClientes.has(cliente.id)}
+                      onCheckedChange={(checked) => handleSelectCliente(cliente.id, checked as boolean)}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">{cliente.nomeCompleto}</TableCell>
+                  <TableCell>{cliente.cpf}</TableCell>
+                  <TableCell>{cliente.email || "-"}</TableCell>
+                  <TableCell>{getStatusBadge(cliente.conviteStatus)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       ) : (
         <EmptyState
           icon={Users}
-          title={hasFilters ? "Nenhum resultado" : "Nenhum cliente cadastrado"}
-          description={
-            hasFilters
-              ? "Tente ajustar os filtros de busca"
-              : "Comece cadastrando seu primeiro cliente pessoa física"
-          }
-          action={
-            hasFilters
-              ? { label: "Limpar Filtros", onClick: clearFilters }
-              : { label: "Cadastrar Cliente", onClick: () => navigate("/cadastro/pf") }
-          }
+          title="Nenhum cliente cadastrado"
+          description="Comece cadastrando seu primeiro cliente pessoa física"
+          action={{ label: "Cadastrar Cliente", onClick: () => navigate("/cadastro/pf") }}
         />
       )}
     </div>
