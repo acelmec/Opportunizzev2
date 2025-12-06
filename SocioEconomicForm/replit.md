@@ -59,7 +59,22 @@ Each subscription plan defines limits for five resource types:
 - **saas_admin**: Platform administrator - manages master data, plans, and all tenants
 - **tenant_admin**: Brokerage administrator - manages users and tenant settings
 - **corretor**: Broker - standard user with client management access
-- **cliente**: End customer - limited portal access
+- **cliente**: End customer - client portal access with self-service features
+
+### Client Portal (Portal do Cliente)
+The client portal provides a clean, dedicated interface for end customers to manage their information:
+
+**Menu Structure:**
+- **Meus Dados**: Socioeconomic data form with editable personal, professional, financial info
+- **Minhas Proteções**: View active insurance policies
+- **Gaps de Proteção**: Protection gap analysis based on business rules scoring
+- **Minhas Apólices**: Full policy management with ability to add new policies and link to assets
+
+**Technical Implementation:**
+- Separate `ClienteSidebar` component for clean portal navigation
+- Portal-specific API endpoints under `/api/portal/*`
+- `isClientPortalUser` middleware restricts access to cliente role only
+- Links pessoa_fisica/pessoa_juridica records via `client_portal_access` table
 
 ### Master Data (SaaS Admin Only)
 - **tipos_seguro_master**: 25 generic insurance product types (Automóvel, Residencial, Vida, etc.)
