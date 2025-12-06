@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Briefcase, DollarSign, Users, Phone, Save } from "lucide-react";
+import { Loader2, User, Briefcase, DollarSign, Users, Phone, Save, Plus, Trash2, MapPin } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 const estadoCivilOptions = [
@@ -17,16 +19,49 @@ const estadoCivilOptions = [
   { value: "uniao_estavel", label: "União Estável" },
 ];
 
+const sexoOptions = [
+  { value: "M", label: "Masculino" },
+  { value: "F", label: "Feminino" },
+];
+
 const preferenciaContatoOptions = [
   { value: "email", label: "E-mail" },
   { value: "telefone", label: "Telefone" },
   { value: "whatsapp", label: "WhatsApp" },
 ];
 
+const grauParentescoOptions = [
+  { value: "filho", label: "Filho(a)" },
+  { value: "conjuge", label: "Cônjuge" },
+  { value: "pai", label: "Pai" },
+  { value: "mae", label: "Mãe" },
+  { value: "irmao", label: "Irmão(ã)" },
+  { value: "neto", label: "Neto(a)" },
+  { value: "sobrinho", label: "Sobrinho(a)" },
+  { value: "outro", label: "Outro" },
+];
+
+interface Dependente {
+  id?: string;
+  nome: string;
+  dataNascimento: string;
+  grauParentesco: string;
+  cpf?: string;
+  dependenteImposto?: boolean;
+}
+
 export default function MeusDadosPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [isDependenteDialogOpen, setIsDependenteDialogOpen] = useState(false);
+  const [newDependente, setNewDependente] = useState<Dependente>({
+    nome: "",
+    dataNascimento: "",
+    grauParentesco: "",
+    cpf: "",
+    dependenteImposto: false,
+  });
 
   const { data, isLoading, error } = useQuery<{
     pessoaFisica: any;
@@ -53,20 +88,52 @@ export default function MeusDadosPage() {
     },
   });
 
+  const addDependenteMutation = useMutation({
+    mutationFn: async (dependente: Dependente) => {
+      const res = await apiRequest("POST", "/api/portal/dependentes", dependente);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/meus-dados"] });
+      toast({ title: "Dependente adicionado com sucesso!" });
+      setIsDependenteDialogOpen(false);
+      setNewDependente({ nome: "", dataNascimento: "", grauParentesco: "", cpf: "", dependenteImposto: false });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro ao adicionar dependente", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const removeDependenteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/portal/dependentes/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/meus-dados"] });
+      toast({ title: "Dependente removido com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro ao remover dependente", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleEdit = () => {
+    const pf = data?.pessoaFisica;
     setFormData({
-      profissao: data?.pessoaFisica?.profissao || "",
-      empresaEmprego: data?.pessoaFisica?.empresaEmprego || "",
-      ocupacaoRisco: data?.pessoaFisica?.ocupacaoRisco || "",
-      rendaMensalBruta: data?.pessoaFisica?.rendaMensalBruta || "",
-      rendaMensalLiquida: data?.pessoaFisica?.rendaMensalLiquida || "",
-      gastosMensais: data?.pessoaFisica?.gastosMensais || "",
-      economias: data?.pessoaFisica?.economias || "",
-      numeroDependentes: data?.pessoaFisica?.numeroDependentes || 0,
-      estadoCivil: data?.pessoaFisica?.estadoCivil || "",
-      telefone: data?.pessoaFisica?.telefone || "",
-      celular: data?.pessoaFisica?.celular || "",
-      preferenciaContato: data?.pessoaFisica?.preferenciaContato || "",
+      sexo: pf?.sexo || "",
+      estadoCivil: pf?.estadoCivil || "",
+      profissao: pf?.profissao || "",
+      empresaEmprego: pf?.empresaEmprego || "",
+      ocupacaoRisco: pf?.ocupacaoRisco || "",
+      rendaMensalBruta: pf?.rendaMensalBruta || "",
+      rendaMensalLiquida: pf?.rendaMensalLiquida || "",
+      gastosMensais: pf?.gastosMensais || "",
+      economias: pf?.economias || "",
+      telefone: pf?.telefone || "",
+      celular: pf?.celular || "",
+      preferenciaContato: pf?.preferenciaContato || "",
+      observacoes: pf?.observacoes || "",
     });
     setIsEditing(true);
   };
@@ -78,6 +145,15 @@ export default function MeusDadosPage() {
   const handleCancel = () => {
     setIsEditing(false);
     setFormData({});
+  };
+
+  const handleAddDependente = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDependente.nome || !newDependente.grauParentesco) {
+      toast({ title: "Preencha os campos obrigatórios", variant: "destructive" });
+      return;
+    }
+    addDependenteMutation.mutate(newDependente);
   };
 
   if (isLoading) {
@@ -102,6 +178,7 @@ export default function MeusDadosPage() {
 
   const pf = data.pessoaFisica;
   const endereco = data.endereco;
+  const dependentes = data.dependentes || [];
 
   const formatCurrency = (value: string | number | null) => {
     if (!value) return "-";
@@ -109,12 +186,17 @@ export default function MeusDadosPage() {
     return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   };
 
+  const formatDate = (date: string | null) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString("pt-BR");
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Meus Dados</h1>
-          <p className="text-muted-foreground">Mantenha suas informações atualizadas para melhores recomendações</p>
+          <p className="text-muted-foreground">Mantenha suas informações atualizadas para melhores recomendações de proteção</p>
         </div>
         {!isEditing && (
           <Button onClick={handleEdit}>Editar Dados</Button>
@@ -127,7 +209,7 @@ export default function MeusDadosPage() {
             <User className="h-5 w-5" />
             Dados Pessoais
           </CardTitle>
-          <CardDescription>Informações básicas do seu cadastro</CardDescription>
+          <CardDescription>Informações básicas do seu cadastro (somente leitura)</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div>
@@ -140,7 +222,24 @@ export default function MeusDadosPage() {
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Data de Nascimento</Label>
-            <p className="font-medium">{pf.dataNascimento || "-"}</p>
+            <p className="font-medium">{formatDate(pf.dataNascimento)}</p>
+          </div>
+          <div>
+            <Label className="text-muted-foreground text-xs">Sexo</Label>
+            {isEditing ? (
+              <Select value={formData.sexo} onValueChange={(v) => setFormData({ ...formData, sexo: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sexoOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="font-medium">{sexoOptions.find(o => o.value === pf.sexo)?.label || "-"}</p>
+            )}
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Estado Civil</Label>
@@ -159,17 +258,44 @@ export default function MeusDadosPage() {
               <p className="font-medium">{estadoCivilOptions.find(o => o.value === pf.estadoCivil)?.label || "-"}</p>
             )}
           </div>
-          {endereco && (
-            <div className="md:col-span-2">
-              <Label className="text-muted-foreground text-xs">Endereço</Label>
-              <p className="font-medium">
-                {[endereco.logradouro, endereco.numero, endereco.complemento, endereco.bairro, endereco.cidade, endereco.estado]
-                  .filter(Boolean).join(", ") || "-"}
-              </p>
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      {endereco && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Endereço
+            </CardTitle>
+            <CardDescription>Seu endereço cadastrado (somente leitura)</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <Label className="text-muted-foreground text-xs">Logradouro</Label>
+              <p className="font-medium">{endereco.logradouro || "-"}, {endereco.numero || "S/N"}</p>
+            </div>
+            {endereco.complemento && (
+              <div>
+                <Label className="text-muted-foreground text-xs">Complemento</Label>
+                <p className="font-medium">{endereco.complemento}</p>
+              </div>
+            )}
+            <div>
+              <Label className="text-muted-foreground text-xs">Bairro</Label>
+              <p className="font-medium">{endereco.bairro || "-"}</p>
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-xs">Cidade/Estado</Label>
+              <p className="font-medium">{endereco.cidade || "-"} / {endereco.estado || "-"}</p>
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-xs">CEP</Label>
+              <p className="font-medium">{endereco.cep || "-"}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -242,7 +368,7 @@ export default function MeusDadosPage() {
           <div>
             <Label className="text-muted-foreground text-xs">Ocupação de Risco</Label>
             {isEditing ? (
-              <Input value={formData.ocupacaoRisco} onChange={(e) => setFormData({ ...formData, ocupacaoRisco: e.target.value })} />
+              <Input value={formData.ocupacaoRisco} onChange={(e) => setFormData({ ...formData, ocupacaoRisco: e.target.value })} placeholder="Ex: Trabalho em altura" />
             ) : (
               <p className="font-medium">{pf.ocupacaoRisco || "-"}</p>
             )}
@@ -262,7 +388,7 @@ export default function MeusDadosPage() {
           <div>
             <Label className="text-muted-foreground text-xs">Renda Mensal Bruta</Label>
             {isEditing ? (
-              <Input type="number" value={formData.rendaMensalBruta} onChange={(e) => setFormData({ ...formData, rendaMensalBruta: e.target.value })} />
+              <Input type="number" step="0.01" value={formData.rendaMensalBruta} onChange={(e) => setFormData({ ...formData, rendaMensalBruta: e.target.value })} placeholder="0.00" />
             ) : (
               <p className="font-medium">{formatCurrency(pf.rendaMensalBruta)}</p>
             )}
@@ -270,7 +396,7 @@ export default function MeusDadosPage() {
           <div>
             <Label className="text-muted-foreground text-xs">Renda Mensal Líquida</Label>
             {isEditing ? (
-              <Input type="number" value={formData.rendaMensalLiquida} onChange={(e) => setFormData({ ...formData, rendaMensalLiquida: e.target.value })} />
+              <Input type="number" step="0.01" value={formData.rendaMensalLiquida} onChange={(e) => setFormData({ ...formData, rendaMensalLiquida: e.target.value })} placeholder="0.00" />
             ) : (
               <p className="font-medium">{formatCurrency(pf.rendaMensalLiquida)}</p>
             )}
@@ -278,7 +404,7 @@ export default function MeusDadosPage() {
           <div>
             <Label className="text-muted-foreground text-xs">Gastos Mensais</Label>
             {isEditing ? (
-              <Input type="number" value={formData.gastosMensais} onChange={(e) => setFormData({ ...formData, gastosMensais: e.target.value })} />
+              <Input type="number" step="0.01" value={formData.gastosMensais} onChange={(e) => setFormData({ ...formData, gastosMensais: e.target.value })} placeholder="0.00" />
             ) : (
               <p className="font-medium">{formatCurrency(pf.gastosMensais)}</p>
             )}
@@ -286,7 +412,7 @@ export default function MeusDadosPage() {
           <div>
             <Label className="text-muted-foreground text-xs">Economias/Reserva</Label>
             {isEditing ? (
-              <Input type="number" value={formData.economias} onChange={(e) => setFormData({ ...formData, economias: e.target.value })} />
+              <Input type="number" step="0.01" value={formData.economias} onChange={(e) => setFormData({ ...formData, economias: e.target.value })} placeholder="0.00" />
             ) : (
               <p className="font-medium">{formatCurrency(pf.economias)}</p>
             )}
@@ -296,39 +422,125 @@ export default function MeusDadosPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Dependentes
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Dependentes
+              </CardTitle>
+              <CardDescription>Familiares que dependem de você</CardDescription>
+            </div>
+            <Dialog open={isDependenteDialogOpen} onOpenChange={setIsDependenteDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Adicionar Dependente</DialogTitle>
+                  <DialogDescription>
+                    Informe os dados do dependente
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAddDependente} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Nome Completo *</Label>
+                    <Input 
+                      value={newDependente.nome} 
+                      onChange={(e) => setNewDependente({ ...newDependente, nome: e.target.value })}
+                      placeholder="Nome do dependente"
+                    />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Grau de Parentesco *</Label>
+                      <Select value={newDependente.grauParentesco} onValueChange={(v) => setNewDependente({ ...newDependente, grauParentesco: v })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {grauParentescoOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Data de Nascimento</Label>
+                      <Input 
+                        type="date" 
+                        value={newDependente.dataNascimento} 
+                        onChange={(e) => setNewDependente({ ...newDependente, dataNascimento: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>CPF</Label>
+                    <Input 
+                      value={newDependente.cpf} 
+                      onChange={(e) => setNewDependente({ ...newDependente, cpf: e.target.value })}
+                      placeholder="000.000.000-00"
+                      maxLength={14}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-3">
+                    <Button type="button" variant="outline" onClick={() => setIsDependenteDialogOpen(false)}>Cancelar</Button>
+                    <Button type="submit" disabled={addDependenteMutation.isPending}>
+                      {addDependenteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                      Adicionar
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <Label className="text-muted-foreground text-xs">Número de Dependentes</Label>
-              {isEditing ? (
-                <Input type="number" min="0" value={formData.numeroDependentes} onChange={(e) => setFormData({ ...formData, numeroDependentes: parseInt(e.target.value) || 0 })} />
-              ) : (
-                <p className="font-medium">{pf.numeroDependentes || 0}</p>
-              )}
-            </div>
-          </div>
-          {data.dependentes && data.dependentes.length > 0 && (
-            <div className="mt-4">
-              <Label className="text-muted-foreground text-xs mb-2 block">Dependentes Cadastrados</Label>
-              <div className="space-y-2">
-                {data.dependentes.map((dep: any) => (
-                  <div key={dep.id} className="p-3 bg-muted rounded-lg">
+          {dependentes.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">Nenhum dependente cadastrado</p>
+          ) : (
+            <div className="space-y-3">
+              {dependentes.map((dep: any) => (
+                <div key={dep.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div>
                     <p className="font-medium">{dep.nome}</p>
                     <p className="text-sm text-muted-foreground">
-                      {dep.grauParentesco} {dep.dataNascimento && `- ${dep.dataNascimento}`}
+                      {grauParentescoOptions.find(o => o.value === dep.grauParentesco)?.label || dep.grauParentesco}
+                      {dep.dataNascimento && ` - ${formatDate(dep.dataNascimento)}`}
                     </p>
                   </div>
-                ))}
-              </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeDependenteMutation.mutate(dep.id)}
+                    disabled={removeDependenteMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {isEditing && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Observações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea 
+              value={formData.observacoes} 
+              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+              placeholder="Informações adicionais relevantes..."
+              rows={3}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {isEditing && (
         <div className="flex justify-end gap-3">

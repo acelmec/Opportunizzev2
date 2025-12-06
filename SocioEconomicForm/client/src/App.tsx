@@ -37,6 +37,7 @@ import PortalMeusDados from "@/pages/portal/meus-dados";
 import PortalMinhasProtecoes from "@/pages/portal/minhas-protecoes";
 import PortalGapsProtecao from "@/pages/portal/gaps-protecao";
 import PortalMinhasApolices from "@/pages/portal/minhas-apolices";
+import PortalMeusPatrimonios from "@/pages/portal/meus-patrimonios";
 import Convite from "@/pages/convite";
 import AceitarConvite from "@/pages/aceitar-convite";
 import Onboarding from "@/pages/onboarding";
@@ -84,6 +85,7 @@ function ClienteRouter() {
   return (
     <Switch>
       <Route path="/" component={PortalMeusDados} />
+      <Route path="/patrimonios" component={PortalMeusPatrimonios} />
       <Route path="/protecoes" component={PortalMinhasProtecoes} />
       <Route path="/gaps" component={PortalGapsProtecao} />
       <Route path="/apolices" component={PortalMinhasApolices} />

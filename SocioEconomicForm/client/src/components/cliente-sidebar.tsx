@@ -7,6 +7,7 @@ import {
   User,
   LogOut,
   Settings,
+  Package,
 } from "lucide-react";
 import {
   Sidebar,
@@ -29,6 +30,11 @@ const clienteNav = [
     title: "Meus Dados",
     url: "/",
     icon: User,
+  },
+  {
+    title: "Meus Patrimônios",
+    url: "/patrimonios",
+    icon: Package,
   },
   {
     title: "Minhas Proteções",

@@ -562,6 +562,11 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async getEndereco(id: string): Promise<Endereco | undefined> {
+    const [endereco] = await db.select().from(enderecos).where(eq(enderecos.id, id));
+    return endereco;
+  }
+
   async getDependentesByPF(pessoaFisicaId: string, tenantId?: string): Promise<Dependente[]> {
     if (tenantId) {
       const pf = await this.getPessoaFisica(pessoaFisicaId, tenantId);
@@ -573,6 +578,15 @@ export class DatabaseStorage implements IStorage {
   async createDependente(dep: InsertDependente): Promise<Dependente> {
     const [created] = await db.insert(dependentes).values(dep).returning();
     return created;
+  }
+
+  async getDependente(id: string): Promise<Dependente | undefined> {
+    const [dep] = await db.select().from(dependentes).where(eq(dependentes.id, id));
+    return dep;
+  }
+
+  async deleteDependenteById(id: string): Promise<void> {
+    await db.delete(dependentes).where(eq(dependentes.id, id));
   }
 
   async deleteDependente(id: string, pessoaFisicaId: string, tenantId?: string): Promise<boolean> {
@@ -635,6 +649,11 @@ export class DatabaseStorage implements IStorage {
     if (!func) return false;
     await db.delete(funcionarios).where(eq(funcionarios.id, id));
     return true;
+  }
+
+  async getPatrimonio(id: string): Promise<Patrimonio | undefined> {
+    const [pat] = await db.select().from(patrimonios).where(eq(patrimonios.id, id));
+    return pat;
   }
 
   async getAllPatrimonios(tenantId?: string): Promise<(Patrimonio & { pessoaFisica?: PessoaFisica | null; pessoaJuridica?: PessoaJuridica | null })[]> {

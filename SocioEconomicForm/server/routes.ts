@@ -3363,7 +3363,7 @@ export async function registerRoutes(
       const allowedFields = [
         'profissao', 'empresaEmprego', 'ocupacaoRisco',
         'rendaMensalBruta', 'rendaMensalLiquida', 'gastosMensais', 'economias',
-        'numeroDependentes', 'estadoCivil', 'telefone', 'celular', 'preferenciaContato'
+        'estadoCivil', 'sexo', 'telefone', 'celular', 'preferenciaContato', 'observacoes'
       ];
 
       const updateData: any = {};
@@ -3398,6 +3398,148 @@ export async function registerRoutes(
       res.json(patrimonios);
     } catch (error) {
       console.error("Error fetching client patrimonios:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/portal/patrimonios", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).currentUser?.id;
+      const tenantId = (req as any).tenantId;
+
+      if (!userId || !tenantId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      const pessoaFisica = await storage.getClientPessoaFisica(userId, tenantId);
+      if (!pessoaFisica) {
+        return res.status(404).json({ message: "Dados não encontrados" });
+      }
+
+      const { tipo, descricao, valorAproximado, dataAquisicao, seguradoAtual,
+              marcaVeiculo, modeloVeiculo, anoFabricacao, anoModelo, placa, usoVeiculo,
+              tipoImovel, areaM2, quartos, valorVenal, residencialPrincipal } = req.body;
+
+      if (!tipo || !descricao) {
+        return res.status(400).json({ message: "Tipo e descrição são obrigatórios" });
+      }
+
+      const patrimonio = await storage.createPatrimonio({
+        tenantId,
+        pessoaFisicaId: pessoaFisica.id,
+        tipo,
+        descricao,
+        valorAproximado: valorAproximado || null,
+        dataAquisicao: dataAquisicao || null,
+        seguradoAtual: seguradoAtual || false,
+        marcaVeiculo: marcaVeiculo || null,
+        modeloVeiculo: modeloVeiculo || null,
+        anoFabricacao: anoFabricacao || null,
+        anoModelo: anoModelo || null,
+        placa: placa || null,
+        usoVeiculo: usoVeiculo || null,
+        tipoImovel: tipoImovel || null,
+        areaM2: areaM2 || null,
+        quartos: quartos || null,
+        valorVenal: valorVenal || null,
+        residencialPrincipal: residencialPrincipal || false,
+      });
+
+      res.status(201).json(patrimonio);
+    } catch (error) {
+      console.error("Error creating client patrimonio:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/portal/patrimonios/:id", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).currentUser?.id;
+      const tenantId = (req as any).tenantId;
+      const patrimonioId = req.params.id;
+
+      if (!userId || !tenantId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      const pessoaFisica = await storage.getClientPessoaFisica(userId, tenantId);
+      if (!pessoaFisica) {
+        return res.status(404).json({ message: "Dados não encontrados" });
+      }
+
+      const patrimonio = await storage.getPatrimonio(patrimonioId);
+      if (!patrimonio || patrimonio.pessoaFisicaId !== pessoaFisica.id) {
+        return res.status(404).json({ message: "Patrimônio não encontrado" });
+      }
+
+      await storage.deletePatrimonio(patrimonioId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting client patrimonio:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/portal/dependentes", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).currentUser?.id;
+      const tenantId = (req as any).tenantId;
+
+      if (!userId || !tenantId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      const pessoaFisica = await storage.getClientPessoaFisica(userId, tenantId);
+      if (!pessoaFisica) {
+        return res.status(404).json({ message: "Dados não encontrados" });
+      }
+
+      const { nome, dataNascimento, grauParentesco, cpf, dependenteImposto } = req.body;
+
+      if (!nome || !grauParentesco) {
+        return res.status(400).json({ message: "Nome e grau de parentesco são obrigatórios" });
+      }
+
+      const dependente = await storage.createDependente({
+        pessoaFisicaId: pessoaFisica.id,
+        nome,
+        dataNascimento: dataNascimento || null,
+        grauParentesco,
+        cpf: cpf || null,
+        dependenteImposto: dependenteImposto || false,
+      });
+
+      res.status(201).json(dependente);
+    } catch (error) {
+      console.error("Error creating dependente:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/portal/dependentes/:id", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).currentUser?.id;
+      const tenantId = (req as any).tenantId;
+      const dependenteId = req.params.id;
+
+      if (!userId || !tenantId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      const pessoaFisica = await storage.getClientPessoaFisica(userId, tenantId);
+      if (!pessoaFisica) {
+        return res.status(404).json({ message: "Dados não encontrados" });
+      }
+
+      const dependente = await storage.getDependente(dependenteId);
+      if (!dependente || dependente.pessoaFisicaId !== pessoaFisica.id) {
+        return res.status(404).json({ message: "Dependente não encontrado" });
+      }
+
+      await storage.deleteDependenteById(dependenteId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting dependente:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -3513,65 +3655,90 @@ export async function registerRoutes(
 
       const apolices = await storage.getClientApolices(userId, tenantId);
       const patrimonios = await storage.getClientPatrimonios(userId, tenantId);
+      const dependentes = await storage.getDependentesByPF(pessoaFisica.id);
       const tiposSeguro = await storage.getAllTiposSeguroMaster();
       const regras = await storage.getAllBusinessRuleTemplates();
 
-      const tiposCobertos = new Set(apolices.filter(a => a.status === 'ativa').map(a => a.tipoSeguroId));
+      const hasRules = regras.length > 0;
 
-      const gaps: any[] = [];
-
-      for (const tipo of tiposSeguro.filter(t => t.ativo)) {
-        if (tiposCobertos.has(tipo.id)) continue;
-
-        const scoreField = `score${tipo.id.charAt(0).toUpperCase() + tipo.id.slice(1).replace(/_/g, '')}` as keyof typeof pessoaFisica;
-        const score = (pessoaFisica as any)[scoreField] || 0;
-
-        const regrasTipo = regras.filter(r => r.tipoSeguroId === tipo.id && r.ativo);
-        
-        let prioridade = 'baixa';
-        let motivo = '';
-
-        if (score >= 80) {
-          prioridade = 'alta';
-          motivo = 'Alto score de adequação ao seu perfil';
-        } else if (score >= 50) {
-          prioridade = 'media';
-          motivo = 'Score moderado de adequação';
-        } else {
-          prioridade = 'baixa';
-          motivo = 'Score baixo de adequação';
-        }
-
-        if (tipo.id === 'auto' && patrimonios.some(p => p.tipo === 'veiculo')) {
-          prioridade = 'alta';
-          motivo = 'Você possui veículos cadastrados sem seguro';
-        }
-        if (tipo.id === 'residencial' && patrimonios.some(p => p.tipo === 'imovel')) {
-          prioridade = 'alta';
-          motivo = 'Você possui imóveis cadastrados sem seguro';
-        }
-        if (tipo.id === 'vida' && pessoaFisica.numeroDependentes && pessoaFisica.numeroDependentes > 0) {
-          prioridade = 'alta';
-          motivo = `Você tem ${pessoaFisica.numeroDependentes} dependente(s) que precisam de proteção`;
-        }
-
-        gaps.push({
-          tipoSeguroId: tipo.id,
-          tipoSeguroNome: tipo.nome,
-          categoria: tipo.categoria,
-          prioridade,
-          score,
-          motivo,
-          regrasAplicadas: regrasTipo.length,
+      if (!hasRules) {
+        return res.json({
+          gaps: [],
+          hasRules: false,
+          patrimonios,
+          dependentes,
         });
       }
 
+      const tiposCobertos = new Set(apolices.filter(a => a.status === 'ativa').map(a => a.tipoSeguroId));
+      const veiculosNaoSegurados = patrimonios.filter(p => p.tipo === 'veiculo' && !p.seguradoAtual);
+      const imoveisNaoSegurados = patrimonios.filter(p => p.tipo === 'imovel' && !p.seguradoAtual);
+
+      const gaps: any[] = [];
+
+      for (const veiculo of veiculosNaoSegurados) {
+        const tipoAuto = tiposSeguro.find(t => t.id === 'auto' || t.nome.toLowerCase().includes('auto'));
+        if (tipoAuto && !tiposCobertos.has(tipoAuto.id)) {
+          const regrasTipo = regras.filter(r => r.tipoSeguroId === tipoAuto.id && r.ativo);
+          gaps.push({
+            tipoSeguroId: tipoAuto.id,
+            tipoSeguroNome: tipoAuto.nome,
+            categoria: tipoAuto.categoria,
+            prioridade: 'alta',
+            score: 85,
+            motivo: `Veículo "${veiculo.descricao}" não possui seguro`,
+            regrasAplicadas: regrasTipo.map(r => r.nome),
+            patrimonio: veiculo,
+          });
+        }
+      }
+
+      for (const imovel of imoveisNaoSegurados) {
+        const tipoResid = tiposSeguro.find(t => t.id === 'residencial' || t.nome.toLowerCase().includes('resid'));
+        if (tipoResid && !tiposCobertos.has(tipoResid.id)) {
+          const regrasTipo = regras.filter(r => r.tipoSeguroId === tipoResid.id && r.ativo);
+          gaps.push({
+            tipoSeguroId: tipoResid.id,
+            tipoSeguroNome: tipoResid.nome,
+            categoria: tipoResid.categoria,
+            prioridade: 'alta',
+            score: 80,
+            motivo: `Imóvel "${imovel.descricao}" não possui seguro`,
+            regrasAplicadas: regrasTipo.map(r => r.nome),
+            patrimonio: imovel,
+          });
+        }
+      }
+
+      if (dependentes.length > 0) {
+        const tipoVida = tiposSeguro.find(t => t.id === 'vida' || t.nome.toLowerCase().includes('vida'));
+        if (tipoVida && !tiposCobertos.has(tipoVida.id)) {
+          const regrasTipo = regras.filter(r => r.tipoSeguroId === tipoVida.id && r.ativo);
+          if (regrasTipo.length > 0) {
+            gaps.push({
+              tipoSeguroId: tipoVida.id,
+              tipoSeguroNome: tipoVida.nome,
+              categoria: tipoVida.categoria,
+              prioridade: 'alta',
+              score: 90,
+              motivo: `Você tem ${dependentes.length} dependente(s) que precisam de proteção financeira`,
+              regrasAplicadas: regrasTipo.map(r => r.nome),
+            });
+          }
+        }
+      }
+
       gaps.sort((a, b) => {
-        const prioridadeOrdem = { alta: 0, media: 1, baixa: 2 };
-        return prioridadeOrdem[a.prioridade as keyof typeof prioridadeOrdem] - prioridadeOrdem[b.prioridade as keyof typeof prioridadeOrdem];
+        const prioridadeOrdem: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
+        return (prioridadeOrdem[a.prioridade] || 2) - (prioridadeOrdem[b.prioridade] || 2);
       });
 
-      res.json(gaps);
+      res.json({
+        gaps,
+        hasRules: true,
+        patrimonios,
+        dependentes,
+      });
     } catch (error) {
       console.error("Error fetching client gaps:", error);
       res.status(500).json({ message: "Internal server error" });
