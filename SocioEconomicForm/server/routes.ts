@@ -3108,7 +3108,13 @@ export async function registerRoutes(
         return res.status(500).json({ message: `Erro ao enviar e-mail de teste: ${result.error}` });
       }
 
-      res.json({ success: true, message: "E-mail de teste enviado com sucesso!" });
+      // Marca como testado com sucesso - CRÍTICO para permitir envio de convites!
+      await storage.upsertTenantSmtpConfig({
+        ...smtpConfig,
+        testatoEm: new Date(),
+      });
+
+      res.json({ success: true, message: "E-mail de teste enviado com sucesso! SMTP validado." });
     } catch (error) {
       console.error("Error sending tenant test email:", error);
       res.status(500).json({ message: "Internal server error" });
