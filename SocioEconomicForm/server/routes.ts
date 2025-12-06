@@ -222,39 +222,56 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Configure o SMTP nas configurações da corretora" });
       }
       if (!smtpConfig.testatoEm) {
-        return res.status(400).json({ message: "SMTP não foi testado. Clique em 'Testar SMTP' antes" });
+        return res.status(400).json({ message: "SMTP não foi testado. Acesse Configurações → SMTP e clique em 'Testar SMTP' antes de enviar convites" });
       }
 
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
       const results = [];
+      const convites = await storage.getAllConvitesByCorretorAndTenant(userId, tenantId);
+
       for (const clienteId of clienteIds) {
-        const cliente = await storage.getPessoaFisica(clienteId, tenantId);
-        if (!cliente || !cliente.email) continue;
+        try {
+          const cliente = await storage.getPessoaFisica(clienteId, tenantId);
+          if (!cliente || !cliente.email) continue;
 
-        const existingConvite = await storage.getConviteByToken("");
-        const convites = await storage.getAllConvitesByCorretorAndTenant(userId, tenantId);
-        const hasConvite = convites.some((c) => c.nomeCliente === cliente.nomeCompleto && c.email === cliente.email);
+          const hasConvite = convites.some((c) => c.nomeCliente === cliente.nomeCompleto && c.email === cliente.email);
 
-        if (!hasConvite) {
-          const convite = await storage.createConvite({
-            corretorId: userId,
-            tenantId,
-            nomeCliente: cliente.nomeCompleto,
-            email: cliente.email,
-            token: require("crypto").randomBytes(32).toString("hex"),
-            status: "enviado",
-            canalEnvio: "email",
-            criadoEm: new Date(),
-            atualizadoEm: new Date(),
-            aceitoEm: null,
-            expiraEm: null,
-            clienteUserId: null,
-          });
-          await apiRequest("POST", `/api/convites/${convite.id}/enviar`, {});
-          results.push({ clienteId, status: "enviado", conviteId: convite.id });
+          let convite;
+          if (hasConvite) {
+            convite = convites.find((c) => c.nomeCliente === cliente.nomeCompleto && c.email === cliente.email);
+          } else {
+            convite = await storage.createConvite({
+              corretorId: userId,
+              tenantId,
+              nomeCliente: cliente.nomeCompleto,
+              email: cliente.email,
+              token: require("crypto").randomBytes(32).toString("hex"),
+              status: "pendente",
+              canalEnvio: "email",
+              criadoEm: new Date(),
+              atualizadoEm: new Date(),
+              aceitoEm: null,
+              expiraEm: null,
+              clienteUserId: null,
+            });
+          }
+
+          if (convite && convite.email) {
+            const sendResult = await sendInviteEmail(smtpConfig, convite, baseUrl);
+            if (sendResult.success) {
+              await storage.updateConviteStatus(convite.id, "enviado");
+              results.push({ clienteId, status: "enviado", conviteId: convite.id, success: true });
+            } else {
+              results.push({ clienteId, status: "erro", erro: sendResult.error, conviteId: convite.id, success: false });
+            }
+          }
+        } catch (error: any) {
+          console.error(`Error sending convite for client ${clienteId}:`, error);
+          results.push({ clienteId, status: "erro", erro: error.message, success: false });
         }
       }
 
-      res.json({ enviados: results.length, detalhes: results });
+      res.json({ enviados: results.filter((r) => r.success).length, falhados: results.filter((r) => !r.success).length, detalhes: results });
     } catch (error: any) {
       console.error("Error batch sending convites:", error);
       res.status(500).json({ message: error.message || "Internal server error" });
