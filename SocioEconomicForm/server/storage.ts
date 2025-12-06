@@ -1477,6 +1477,68 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async getClientPessoaFisica(userId: string, tenantId: string): Promise<PessoaFisica | undefined> {
+    const access = await this.getClientPortalAccess(userId, tenantId);
+    if (!access || !access.pessoaFisicaId) {
+      return undefined;
+    }
+    return this.getPessoaFisica(access.pessoaFisicaId, tenantId);
+  }
+
+  async getClientPatrimonios(userId: string, tenantId: string): Promise<Patrimonio[]> {
+    const access = await this.getClientPortalAccess(userId, tenantId);
+    if (!access || !access.pessoaFisicaId) {
+      return [];
+    }
+    return db.select().from(patrimonios)
+      .where(and(
+        eq(patrimonios.tenantId, tenantId),
+        eq(patrimonios.pessoaFisicaId, access.pessoaFisicaId)
+      ))
+      .orderBy(desc(patrimonios.createdAt));
+  }
+
+  async getClientApolices(userId: string, tenantId: string): Promise<TenantPolicy[]> {
+    const access = await this.getClientPortalAccess(userId, tenantId);
+    if (!access || !access.pessoaFisicaId) {
+      return [];
+    }
+    return db.select().from(tenantPolicies)
+      .where(and(
+        eq(tenantPolicies.tenantId, tenantId),
+        eq(tenantPolicies.pessoaFisicaId, access.pessoaFisicaId)
+      ))
+      .orderBy(desc(tenantPolicies.createdAt));
+  }
+
+  async updateClientPessoaFisica(userId: string, tenantId: string, data: Partial<PessoaFisica>): Promise<PessoaFisica | undefined> {
+    const access = await this.getClientPortalAccess(userId, tenantId);
+    if (!access || !access.pessoaFisicaId) {
+      return undefined;
+    }
+    const [updated] = await db.update(pessoasFisicas)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(
+        eq(pessoasFisicas.id, access.pessoaFisicaId),
+        eq(pessoasFisicas.tenantId, tenantId)
+      ))
+      .returning();
+    return updated;
+  }
+
+  async createClientApolice(userId: string, tenantId: string, data: Omit<InsertTenantPolicy, 'tenantId' | 'pessoaFisicaId'>): Promise<TenantPolicy | null> {
+    const access = await this.getClientPortalAccess(userId, tenantId);
+    if (!access || !access.pessoaFisicaId) {
+      return null;
+    }
+    const [created] = await db.insert(tenantPolicies).values({
+      ...data,
+      tenantId,
+      pessoaFisicaId: access.pessoaFisicaId,
+    } as any).returning();
+    return created;
+  }
+
   // SaaS Admin - Global SMTP Config
   async getSaasSmtpConfig(): Promise<SaasSmtpConfig | undefined> {
     const [config] = await db.select().from(saasSmtpConfig).where(eq(saasSmtpConfig.ativo, true)).limit(1);

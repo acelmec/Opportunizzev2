@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupEmailAuth, isEmailAuthenticated } from "./emailAuth";
+import { setupEmailAuth, isEmailAuthenticated, isClientPortalUser } from "./emailAuth";
 import { withTenantContext, requireTenant, requireRole, isSaasAdmin, isTenantAdmin, isCorretorOrAdmin } from "./middleware/tenant";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -3311,6 +3311,289 @@ export async function registerRoutes(
       });
     } catch (error) {
       console.error("Error updating account:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // ============================================
+  // Portal do Cliente - APIs
+  // ============================================
+
+  app.get("/api/portal/meus-dados", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).currentUser?.id;
+      const tenantId = (req as any).tenantId;
+
+      if (!userId || !tenantId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      const pessoaFisica = await storage.getClientPessoaFisica(userId, tenantId);
+      if (!pessoaFisica) {
+        return res.status(404).json({ message: "Dados não encontrados" });
+      }
+
+      let endereco = null;
+      if (pessoaFisica.enderecoId) {
+        endereco = await storage.getEndereco(pessoaFisica.enderecoId);
+      }
+
+      const dependentes = await storage.getDependentesByPF(pessoaFisica.id);
+
+      res.json({
+        pessoaFisica,
+        endereco,
+        dependentes,
+      });
+    } catch (error) {
+      console.error("Error fetching client data:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/portal/meus-dados", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).currentUser?.id;
+      const tenantId = (req as any).tenantId;
+
+      if (!userId || !tenantId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      const allowedFields = [
+        'profissao', 'empresaEmprego', 'ocupacaoRisco',
+        'rendaMensalBruta', 'rendaMensalLiquida', 'gastosMensais', 'economias',
+        'numeroDependentes', 'estadoCivil', 'telefone', 'celular', 'preferenciaContato'
+      ];
+
+      const updateData: any = {};
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updateData[field] = req.body[field];
+        }
+      }
+
+      const updated = await storage.updateClientPessoaFisica(userId, tenantId, updateData);
+      if (!updated) {
+        return res.status(404).json({ message: "Dados não encontrados" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating client data:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/portal/patrimonios", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).currentUser?.id;
+      const tenantId = (req as any).tenantId;
+
+      if (!userId || !tenantId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      const patrimonios = await storage.getClientPatrimonios(userId, tenantId);
+      res.json(patrimonios);
+    } catch (error) {
+      console.error("Error fetching client patrimonios:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/portal/apolices", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).currentUser?.id;
+      const tenantId = (req as any).tenantId;
+
+      if (!userId || !tenantId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      const apolices = await storage.getClientApolices(userId, tenantId);
+
+      const tiposSeguro = await storage.getAllTiposSeguroMaster();
+      const seguradoras = await storage.getAllSeguradorasMaster();
+
+      const apolicesEnriquecidas = apolices.map(apolice => ({
+        ...apolice,
+        tipoSeguroNome: tiposSeguro.find(t => t.id === apolice.tipoSeguroId)?.nome || 'Desconhecido',
+        seguradoraNome: seguradoras.find(s => s.id === apolice.seguradoraId)?.nome || 'Desconhecida',
+      }));
+
+      res.json(apolicesEnriquecidas);
+    } catch (error) {
+      console.error("Error fetching client apolices:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/portal/apolices", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).currentUser?.id;
+      const tenantId = (req as any).tenantId;
+
+      if (!userId || !tenantId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      const { tipoSeguroId, seguradoraId, numeroApolice, dataInicio, dataFim, premioMensal, valorCobertura, patrimonioId, observacoes } = req.body;
+
+      if (!tipoSeguroId) {
+        return res.status(400).json({ message: "Tipo de seguro é obrigatório" });
+      }
+
+      const apolice = await storage.createClientApolice(userId, tenantId, {
+        tipoSeguroId,
+        seguradoraId: seguradoraId || null,
+        numeroApolice: numeroApolice || null,
+        dataInicio: dataInicio ? new Date(dataInicio) : null,
+        dataFim: dataFim ? new Date(dataFim) : null,
+        premioMensal: premioMensal || null,
+        valorCobertura: valorCobertura || null,
+        patrimonioId: patrimonioId || null,
+        status: 'ativa',
+        observacoes: observacoes || null,
+      });
+
+      if (!apolice) {
+        return res.status(400).json({ message: "Não foi possível criar a apólice" });
+      }
+
+      res.status(201).json(apolice);
+    } catch (error) {
+      console.error("Error creating client apolice:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/portal/protecoes", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).currentUser?.id;
+      const tenantId = (req as any).tenantId;
+
+      if (!userId || !tenantId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      const apolices = await storage.getClientApolices(userId, tenantId);
+      const tiposSeguro = await storage.getAllTiposSeguroMaster();
+      const seguradoras = await storage.getAllSeguradorasMaster();
+
+      const protecoes = apolices
+        .filter(a => a.status === 'ativa')
+        .map(apolice => ({
+          ...apolice,
+          tipoSeguroNome: tiposSeguro.find(t => t.id === apolice.tipoSeguroId)?.nome || 'Desconhecido',
+          seguradoraNome: seguradoras.find(s => s.id === apolice.seguradoraId)?.nome || 'Desconhecida',
+          tipoSeguroCategoria: tiposSeguro.find(t => t.id === apolice.tipoSeguroId)?.categoria,
+        }));
+
+      res.json(protecoes);
+    } catch (error) {
+      console.error("Error fetching client protecoes:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/portal/gaps", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).currentUser?.id;
+      const tenantId = (req as any).tenantId;
+
+      if (!userId || !tenantId) {
+        return res.status(401).json({ message: "Não autenticado" });
+      }
+
+      const pessoaFisica = await storage.getClientPessoaFisica(userId, tenantId);
+      if (!pessoaFisica) {
+        return res.status(404).json({ message: "Dados não encontrados" });
+      }
+
+      const apolices = await storage.getClientApolices(userId, tenantId);
+      const patrimonios = await storage.getClientPatrimonios(userId, tenantId);
+      const tiposSeguro = await storage.getAllTiposSeguroMaster();
+      const regras = await storage.getAllBusinessRuleTemplates();
+
+      const tiposCobertos = new Set(apolices.filter(a => a.status === 'ativa').map(a => a.tipoSeguroId));
+
+      const gaps: any[] = [];
+
+      for (const tipo of tiposSeguro.filter(t => t.ativo)) {
+        if (tiposCobertos.has(tipo.id)) continue;
+
+        const scoreField = `score${tipo.id.charAt(0).toUpperCase() + tipo.id.slice(1).replace(/_/g, '')}` as keyof typeof pessoaFisica;
+        const score = (pessoaFisica as any)[scoreField] || 0;
+
+        const regrasTipo = regras.filter(r => r.tipoSeguroId === tipo.id && r.ativo);
+        
+        let prioridade = 'baixa';
+        let motivo = '';
+
+        if (score >= 80) {
+          prioridade = 'alta';
+          motivo = 'Alto score de adequação ao seu perfil';
+        } else if (score >= 50) {
+          prioridade = 'media';
+          motivo = 'Score moderado de adequação';
+        } else {
+          prioridade = 'baixa';
+          motivo = 'Score baixo de adequação';
+        }
+
+        if (tipo.id === 'auto' && patrimonios.some(p => p.tipo === 'veiculo')) {
+          prioridade = 'alta';
+          motivo = 'Você possui veículos cadastrados sem seguro';
+        }
+        if (tipo.id === 'residencial' && patrimonios.some(p => p.tipo === 'imovel')) {
+          prioridade = 'alta';
+          motivo = 'Você possui imóveis cadastrados sem seguro';
+        }
+        if (tipo.id === 'vida' && pessoaFisica.numeroDependentes && pessoaFisica.numeroDependentes > 0) {
+          prioridade = 'alta';
+          motivo = `Você tem ${pessoaFisica.numeroDependentes} dependente(s) que precisam de proteção`;
+        }
+
+        gaps.push({
+          tipoSeguroId: tipo.id,
+          tipoSeguroNome: tipo.nome,
+          categoria: tipo.categoria,
+          prioridade,
+          score,
+          motivo,
+          regrasAplicadas: regrasTipo.length,
+        });
+      }
+
+      gaps.sort((a, b) => {
+        const prioridadeOrdem = { alta: 0, media: 1, baixa: 2 };
+        return prioridadeOrdem[a.prioridade as keyof typeof prioridadeOrdem] - prioridadeOrdem[b.prioridade as keyof typeof prioridadeOrdem];
+      });
+
+      res.json(gaps);
+    } catch (error) {
+      console.error("Error fetching client gaps:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/portal/catalogo/tipos-seguro", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const tipos = await storage.getAllTiposSeguroMaster();
+      res.json(tipos.filter(t => t.ativo).sort((a, b) => (a.ordem || 0) - (b.ordem || 0)));
+    } catch (error) {
+      console.error("Error fetching tipos seguro:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/portal/catalogo/seguradoras", isEmailAuthenticated, isClientPortalUser, async (req: Request, res: Response) => {
+    try {
+      const seguradoras = await storage.getAllSeguradorasMaster();
+      res.json(seguradoras.filter(s => s.ativo));
+    } catch (error) {
+      console.error("Error fetching seguradoras:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

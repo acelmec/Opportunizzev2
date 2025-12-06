@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SaasAdminSidebar } from "@/components/saas-admin-sidebar";
+import { ClienteSidebar } from "@/components/cliente-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,6 +33,10 @@ import TiposSeguro from "@/pages/tipos-seguro";
 import TiposSeguroDetalhes from "@/pages/tipos-seguro-detalhes";
 import Apolices from "@/pages/apolices";
 import ClienteDashboard from "@/pages/cliente-dashboard";
+import PortalMeusDados from "@/pages/portal/meus-dados";
+import PortalMinhasProtecoes from "@/pages/portal/minhas-protecoes";
+import PortalGapsProtecao from "@/pages/portal/gaps-protecao";
+import PortalMinhasApolices from "@/pages/portal/minhas-apolices";
 import Convite from "@/pages/convite";
 import AceitarConvite from "@/pages/aceitar-convite";
 import Onboarding from "@/pages/onboarding";
@@ -78,8 +83,10 @@ function SaasAdminRouter() {
 function ClienteRouter() {
   return (
     <Switch>
-      <Route path="/" component={ClienteDashboard} />
-      <Route path="/cliente/dashboard" component={ClienteDashboard} />
+      <Route path="/" component={PortalMeusDados} />
+      <Route path="/protecoes" component={PortalMinhasProtecoes} />
+      <Route path="/gaps" component={PortalGapsProtecao} />
+      <Route path="/apolices" component={PortalMinhasApolices} />
       <Route path="/conta" component={Account} />
       <Route path="/aceitar-convite/:token" component={AceitarConvite} />
       <Route component={NotFound} />
@@ -148,10 +155,38 @@ function SaasAdminLayout() {
   );
 }
 
+function ClienteLayout() {
+  const sidebarStyle = {
+    "--sidebar-width": "15rem",
+    "--sidebar-width-icon": "3rem",
+  };
+
+  return (
+    <SidebarProvider style={sidebarStyle as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <ClienteSidebar />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <header className="flex items-center justify-between h-14 px-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shrink-0">
+            <SidebarTrigger data-testid="button-sidebar-toggle" />
+            <ThemeToggle />
+          </header>
+          <main className="flex-1 overflow-y-auto">
+            <ClienteRouter />
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
+
 function AuthenticatedLayout() {
   const { user } = useAuth();
   const isCliente = user?.role === "cliente";
   
+  if (isCliente) {
+    return <ClienteLayout />;
+  }
+
   const sidebarStyle = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
@@ -167,7 +202,7 @@ function AuthenticatedLayout() {
             <ThemeToggle />
           </header>
           <main className="flex-1 overflow-y-auto p-4 md:p-6">
-            {isCliente ? <ClienteRouter /> : <CorretorRouter />}
+            <CorretorRouter />
           </main>
         </div>
       </div>
