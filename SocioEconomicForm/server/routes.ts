@@ -5,6 +5,7 @@ import { setupEmailAuth, isEmailAuthenticated } from "./emailAuth";
 import { withTenantContext, requireTenant, requireRole, isSaasAdmin, isTenantAdmin, isCorretorOrAdmin } from "./middleware/tenant";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import {
   insertPessoaFisicaSchema,
   insertPessoaJuridicaSchema,
@@ -161,6 +162,7 @@ export async function registerRoutes(
       res.status(500).json({ message: "Internal server error" });
     }
   });
+
 
   app.get("/api/dashboard/stats", isEmailAuthenticated, async (req: Request, res: Response) => {
     try {

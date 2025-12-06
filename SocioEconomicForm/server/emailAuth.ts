@@ -6,6 +6,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import jwt from "jsonwebtoken";
 import { consultarCNPJ } from "./services/cnpj";
 
 const SALT_ROUNDS = 12;
@@ -401,10 +402,30 @@ export async function setupEmailAuth(app: Express) {
       if (user.role !== "cliente") {
         return res.status(403).json({ message: "Acesso negado. Use o portal de corretores." });
       }
+      if (!user.isActive) {
+        return res.status(403).json({ message: "Conta desativada. Entre em contato com a corretora." });
+      }
       req.logIn(user, (loginErr) => {
         if (loginErr) {
           return res.status(500).json({ message: "Erro ao iniciar sessão" });
         }
+        
+        // Também setar cookie JWT para autenticação do portal
+        const jwtSecret = process.env.SESSION_SECRET;
+        if (jwtSecret) {
+          const token = jwt.sign(
+            { id: user.id, email: user.email, role: user.role, tenantId: user.tenantId },
+            jwtSecret,
+            { expiresIn: "7d" }
+          );
+          res.cookie("portal_token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+          });
+        }
+        
         return res.json({
           message: "Login realizado com sucesso",
           user: {
@@ -430,9 +451,17 @@ export async function setupEmailAuth(app: Express) {
           return res.status(500).json({ message: "Erro ao destruir sessão" });
         }
         res.clearCookie("connect.sid");
+        res.clearCookie("portal_token");
         res.json({ message: "Logout realizado com sucesso" });
       });
     });
+  });
+
+  // Portal do Cliente - Logout específico
+  app.post("/api/auth/portal/logout", (req, res) => {
+    res.clearCookie("portal_token");
+    res.clearCookie("connect.sid");
+    res.json({ message: "Logout realizado com sucesso" });
   });
 
   app.post("/api/auth/forgot-password", async (req, res) => {
@@ -516,20 +545,50 @@ export async function setupEmailAuth(app: Express) {
     }
   });
 
-  app.get("/api/auth/user", (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Não autenticado" });
+  app.get("/api/auth/user", async (req, res) => {
+    // Primeiro tenta autenticação por sessão (passport)
+    if (req.isAuthenticated() && req.user) {
+      const user = req.user as any;
+      return res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        tenantId: user.tenantId,
+        emailVerified: user.emailVerified,
+      });
     }
-    const user = req.user as any;
-    res.json({
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      tenantId: user.tenantId,
-      emailVerified: user.emailVerified,
-    });
+    
+    // Depois tenta autenticação por JWT (portal do cliente)
+    const portalToken = req.cookies?.portal_token;
+    const jwtSecret = process.env.SESSION_SECRET;
+    
+    if (portalToken && jwtSecret) {
+      try {
+        const decoded = jwt.verify(
+          portalToken, 
+          jwtSecret
+        ) as { id: string; email: string; role: string; tenantId: string };
+        
+        const user = await storage.getUser(decoded.id);
+        if (user && user.isActive) {
+          return res.json({
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            tenantId: user.tenantId,
+            emailVerified: user.emailVerified,
+          });
+        }
+      } catch (err) {
+        // Token inválido ou expirado
+      }
+    }
+    
+    return res.status(401).json({ message: "Não autenticado" });
   });
 
   app.get("/api/auth/user/roles", async (req, res) => {
@@ -547,28 +606,63 @@ export async function setupEmailAuth(app: Express) {
   });
 }
 
-export const isEmailAuthenticated: RequestHandler = (req, res, next) => {
-  if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).json({ message: "Não autenticado" });
+export const isEmailAuthenticated: RequestHandler = async (req, res, next) => {
+  // Primeiro tenta autenticação por sessão (passport)
+  if (req.isAuthenticated() && req.user) {
+    const user = req.user as any;
+    (req as any).currentUser = user;
+    (req as any).userRole = user.role || "corretor";
+    (req as any).tenantId = user.tenantId || undefined;
+    return next();
   }
   
-  // Populate user context for downstream middleware
-  const user = req.user as any;
-  (req as any).currentUser = user;
-  (req as any).userRole = user.role || "corretor";
-  (req as any).tenantId = user.tenantId || undefined;
+  // Depois tenta autenticação por JWT (portal do cliente)
+  const portalToken = req.cookies?.portal_token;
+  const jwtSecret = process.env.SESSION_SECRET;
   
-  next();
+  if (portalToken && jwtSecret) {
+    try {
+      const decoded = jwt.verify(
+        portalToken, 
+        jwtSecret
+      ) as { id: string; email: string; role: string; tenantId: string };
+      
+      const user = await storage.getUser(decoded.id);
+      if (user && user.isActive) {
+        // Configurar req.user no formato esperado pelos outros middlewares
+        const userWithClaims = {
+          ...user,
+          claims: {
+            sub: user.id,
+          },
+        };
+        req.user = userWithClaims;
+        (req as any).currentUser = user;
+        (req as any).userRole = user.role || "cliente";
+        (req as any).tenantId = user.tenantId || undefined;
+        return next();
+      }
+    } catch (err) {
+      // Token inválido ou expirado - continua para erro de não autenticado
+    }
+  }
+  
+  return res.status(401).json({ message: "Não autenticado" });
 };
 
 export const isClientPortalUser: RequestHandler = async (req, res, next) => {
-  if (!req.isAuthenticated() || !req.user) {
+  const user = (req as any).user || (req as any).currentUser;
+  
+  if (!user) {
     return res.status(401).json({ message: "Não autenticado" });
   }
   
-  const user = req.user as any;
-  const roles = await storage.getUserRoles(user.id);
+  // Verifica se é cliente pelo role direto ou pelos roles associados
+  if (user.role === "cliente") {
+    return next();
+  }
   
+  const roles = await storage.getUserRoles(user.id);
   const hasClientRole = roles.some(r => r.role === "cliente");
   if (!hasClientRole) {
     return res.status(403).json({ message: "Acesso negado ao portal do cliente" });

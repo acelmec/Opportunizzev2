@@ -2,9 +2,13 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import cookieParser from "cookie-parser";
 
 const app = express();
 const httpServer = createServer(app);
+
+// Cookie parser - necessário para ler cookies nas requisições
+app.use(cookieParser());
 
 declare module "http" {
   interface IncomingMessage {
